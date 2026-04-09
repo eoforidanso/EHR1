@@ -1,0 +1,165 @@
+import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePatient } from '../../contexts/PatientContext';
+import { labOrderDatabase, labFacilities } from '../../data/mockData';
+
+export default function Orders({ patientId }) {
+  const { currentUser } = useAuth();
+  const { orders, addOrder } = usePatient();
+  const [showAdd, setShowAdd] = useState(false);
+  const [orderType, setOrderType] = useState('Lab');
+  const [search, setSearch] = useState('');
+  const [form, setForm] = useState({ type: 'Lab', description: '', priority: 'Routine', notes: '' });
+  const [labFacilitySearch, setLabFacilitySearch] = useState('');
+  const [selectedLabFacility, setSelectedLabFacility] = useState(null);
+
+  const patientOrders = orders[patientId] || [];
+
+  const filteredLabs = search.length > 0
+    ? labOrderDatabase.filter(l => l.name.toLowerCase().includes(search.toLowerCase()) || l.code.includes(search))
+    : labOrderDatabase;
+
+  const handleAdd = () => {
+    if (!form.description.trim()) return;
+    addOrder(patientId, {
+      ...form,
+      labFacility: form.type === 'Lab' && selectedLabFacility ? `${selectedLabFacility.name} — ${selectedLabFacility.city}` : '',
+      status: 'Pending',
+      orderedDate: new Date().toISOString().split('T')[0],
+      orderedBy: `${currentUser.firstName} ${currentUser.lastName}`,
+    });
+    setForm({ type: 'Lab', description: '', priority: 'Routine', notes: '' });
+    setSelectedLabFacility(null);
+    setLabFacilitySearch('');
+    setShowAdd(false);
+  };
+
+  const selectLabOrder = (lab) => {
+    setForm({ ...form, description: form.description ? `${form.description}, ${lab.name}` : lab.name, type: 'Lab' });
+  };
+
+  return (
+    <div>
+      <div className="card">
+        <div className="card-header">
+          <h2>📝 Orders ({patientOrders.length})</h2>
+          <button className="btn btn-sm btn-primary" onClick={() => setShowAdd(!showAdd)}>
+            + New Order
+          </button>
+        </div>
+
+        {showAdd && (
+          <div className="card-body" style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Order Type</label>
+                <select className="form-select" value={form.type} onChange={(e) => { setForm({ ...form, type: e.target.value }); setOrderType(e.target.value); }}>
+                  <option>Lab</option><option>Imaging</option><option>Referral</option><option>Prescription</option><option>Procedure</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Priority</label>
+                <select className="form-select" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
+                  <option>Routine</option><option>Urgent</option><option>STAT</option>
+                </select>
+              </div>
+            </div>
+
+            {form.type === 'Lab' && (
+              <>
+                <div className="form-group" style={{ position: 'relative' }}>
+                  <label className="form-label">Lab Facility</label>
+                  {selectedLabFacility ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: 'var(--radius)', fontSize: 12 }}>
+                      <span style={{ flex: 1 }}>🧪 <strong>{selectedLabFacility.name}</strong> — {selectedLabFacility.address}, {selectedLabFacility.city}</span>
+                      <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text-muted)' }} onClick={() => { setSelectedLabFacility(null); setLabFacilitySearch(''); }}>×</button>
+                    </div>
+                  ) : (
+                    <>
+                      <input className="form-input" value={labFacilitySearch} onChange={(e) => setLabFacilitySearch(e.target.value)} placeholder="Search Quest Diagnostics, LabCorp, or city…" />
+                      {labFacilitySearch.length > 0 && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--bg-white)', boxShadow: 'var(--shadow-md)' }}>
+                          {labFacilities.filter(f => f.name.toLowerCase().includes(labFacilitySearch.toLowerCase()) || f.chain.toLowerCase().includes(labFacilitySearch.toLowerCase()) || f.city.toLowerCase().includes(labFacilitySearch.toLowerCase())).slice(0, 8).map(f => (
+                            <div key={f.id} style={{ padding: '6px 10px', cursor: 'pointer', borderBottom: '1px solid var(--border-light)', fontSize: 12 }}
+                              onMouseEnter={e => e.currentTarget.style.background = '#ecfdf5'}
+                              onMouseLeave={e => e.currentTarget.style.background = ''}
+                              onClick={() => { setSelectedLabFacility(f); setLabFacilitySearch(''); }}>
+                              <div style={{ fontWeight: 600 }}>{f.name}</div>
+                              <div style={{ color: 'var(--text-muted)' }}>{f.address}, {f.city} {f.zip} · {f.phone}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Search Lab Orders</label>
+                  <input className="form-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search labs..." />
+                  <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginTop: 4 }}>
+                    {filteredLabs.map((lab) => (
+                      <div
+                        key={lab.code}
+                        style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13, display: 'flex', justifyContent: 'space-between' }}
+                        onClick={() => selectLabOrder(lab)}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--primary-light)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = ''}
+                      >
+                        <span>{lab.name}</span>
+                        <span className="text-muted text-xs">{lab.code} · {lab.category}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">Order Description *</label>
+              <input className="form-input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe the order..." />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Clinical Notes</label>
+              <textarea className="form-textarea" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Additional notes..." />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-sm btn-primary" onClick={handleAdd}>Place Order</button>
+              <button className="btn btn-sm btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        <div className="card-body no-pad">
+          <table className="data-table">
+            <thead>
+              <tr><th>Type</th><th>Description</th><th>Status</th><th>Date</th><th>Ordered By</th><th>Priority</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              {patientOrders.map((o) => (
+                <tr key={o.id}>
+                  <td><span className={`badge ${o.type === 'Lab' ? 'badge-info' : o.type === 'Referral' ? 'badge-purple' : o.type === 'Imaging' ? 'badge-warning' : 'badge-gray'}`}>{o.type}</span></td>
+                  <td className="font-medium">{o.description}</td>
+                  <td>
+                    <span className={`badge ${
+                      o.status === 'Completed' ? 'badge-success' :
+                      o.status === 'Pending' ? 'badge-warning' :
+                      o.status === 'Pending EPCS Auth' ? 'badge-danger' :
+                      o.status === 'Active' ? 'badge-info' : 'badge-gray'
+                    }`}>{o.status}</span>
+                  </td>
+                  <td className="text-sm">{o.orderedDate}</td>
+                  <td className="text-sm">{o.orderedBy}</td>
+                  <td><span className={`badge ${o.priority === 'Urgent' || o.priority === 'STAT' ? 'badge-danger' : 'badge-gray'}`}>{o.priority}</span></td>
+                  <td className="text-sm text-muted">{o.notes}</td>
+                </tr>
+              ))}
+              {patientOrders.length === 0 && (
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No orders</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
