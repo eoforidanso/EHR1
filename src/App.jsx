@@ -71,7 +71,7 @@ function PatientPortalRoute() {
 
 export default function App() {
   return (
-    <BrowserRouter basename="/EHR">
+    <BrowserRouter basename="/EHR1">
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginRoute />} />
