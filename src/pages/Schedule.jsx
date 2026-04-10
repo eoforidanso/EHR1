@@ -11,7 +11,10 @@ const TODAY = new Date();
 const toKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const isSame = (a,b) => toKey(a) === toKey(b);
 const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const WEEKDAYS_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const HOURS = [7,8,9,10,11,12,13,14,15,16,17,18];
+const fmtHour = (h) => { const s = h % 12 === 0 ? 12 : h % 12; return `${s} ${h < 12 ? 'AM' : 'PM'}`; };
 
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
@@ -46,9 +49,13 @@ export default function Schedule() {
   const { appointments, updateAppointmentStatus, selectPatient, blockedDays, addBlockedDay, removeBlockedDay } = usePatient();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState('All');
-  const [view, setView] = useState('calendar');          // 'calendar' | 'list' | 'block'
+  const [view, setView] = useState('calendar');          // 'calendar' | 'day' | 'week' | 'list' | 'block'
   const [calendarBase, setCalendarBase] = useState(() => new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState(null);
+  const [dayViewDate, setDayViewDate] = useState(() => new Date(TODAY));
+  const [weekViewStart, setWeekViewStart] = useState(() => {
+    const d = new Date(TODAY); d.setDate(d.getDate() - d.getDay()); return d;
+  });
 
   // Block Days state
   const [blockProvider, setBlockProvider] = useState(currentUser?.id || PROVIDERS[0]?.id || '');
@@ -145,7 +152,42 @@ export default function Schedule() {
   const goToday = useCallback(() => {
     setCalendarBase(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
     setSelectedDate(null);
+    setDayViewDate(new Date(TODAY));
+    const d = new Date(TODAY); d.setDate(d.getDate() - d.getDay());
+    setWeekViewStart(d);
   }, []);
+
+  /* week view helpers */
+  const weekDays = useMemo(() => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekViewStart);
+      d.setDate(d.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  }, [weekViewStart]);
+  const shiftWeek = useCallback((delta) => {
+    setWeekViewStart(prev => { const d = new Date(prev); d.setDate(d.getDate() + delta * 7); return d; });
+  }, []);
+  const shiftDay = useCallback((delta) => {
+    setDayViewDate(prev => { const d = new Date(prev); d.setDate(d.getDate() + delta); return d; });
+  }, []);
+
+  /* parse appointment time to fractional hour, e.g. "9:30 AM" -> 9.5 */
+  const parseTimeToHour = (timeStr) => {
+    if (!timeStr) return null;
+    const m = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (!m) return null;
+    let h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    if (m[3]) {
+      const ampm = m[3].toUpperCase();
+      if (ampm === 'PM' && h !== 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+    }
+    return h + min / 60;
+  };
 
   /* actions */
   const handleOpenChart = (apt) => { if (apt.patientId) { selectPatient(apt.patientId); navigate(`/chart/${apt.patientId}/summary`); } };
@@ -174,7 +216,7 @@ export default function Schedule() {
         </div>
         {/* View toggle */}
         <div style={{ display: 'flex', gap: 4, background: 'var(--bg-secondary)', borderRadius: 10, padding: 3 }}>
-          {[{ key: 'calendar', icon: '📆', label: 'Calendar' }, { key: 'list', icon: '📋', label: 'List' }, { key: 'block', icon: '⛔', label: 'Block Days' }].map(v => (
+          {[{ key: 'day', icon: '📅', label: 'Day' }, { key: 'week', icon: '🗓️', label: 'Week' }, { key: 'calendar', icon: '📆', label: 'Month' }, { key: 'list', icon: '📋', label: 'List' }, { key: 'block', icon: '⛔', label: 'Block Days' }].map(v => (
             <button key={v.key} onClick={() => setView(v.key)}
               style={{
                 padding: '6px 16px', borderRadius: 8, fontSize: 13, fontWeight: view === v.key ? 700 : 500, cursor: 'pointer',
@@ -188,6 +230,233 @@ export default function Schedule() {
           ))}
         </div>
       </div>
+
+      {/* ── Day View ── */}
+      {view === 'day' && (() => {
+        const dayKey = toKey(dayViewDate);
+        const dayAppts = allAppts.filter(a => a.date === dayKey);
+        const dayLabel = dayViewDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        const isToday = isSame(dayViewDate, TODAY);
+        const dayBlocks = blockedByDate[dayKey] || [];
+        const nowHour = TODAY.getHours() + TODAY.getMinutes() / 60;
+        return (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <button onClick={() => shiftDay(-1)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)' }}>◀</button>
+              <button onClick={goToday} style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>Today</button>
+              <button onClick={() => shiftDay(1)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)' }}>▶</button>
+              <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', marginLeft: 6 }}>
+                {dayLabel}
+                {isToday && <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 10px', borderRadius: 10, background: '#dbeafe', color: '#1e40af', fontWeight: 600 }}>Today</span>}
+              </span>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+                {dayAppts.length} appointment{dayAppts.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            {dayBlocks.length > 0 && (
+              <div style={{ marginBottom: 12, padding: '8px 14px', background: 'rgba(201,43,43,0.08)', border: '1px solid rgba(201,43,43,0.2)', borderRadius: 8, fontSize: 12, color: '#c92b2b', fontWeight: 600 }}>
+                ⛔ {dayBlocks.map(b => `${b.providerName}: ${b.type === 'full' ? 'Full Day Blocked' : b.type === 'am' ? 'AM Blocked' : 'PM Blocked'}${b.reason ? ` — ${b.reason}` : ''}`).join(' | ')}
+              </div>
+            )}
+            <div style={{ background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+              {HOURS.map((hour) => {
+                const hourAppts = dayAppts.filter(a => {
+                  const h = parseTimeToHour(a.time);
+                  return h !== null && Math.floor(h) === hour;
+                });
+                const isNowHour = isToday && Math.floor(nowHour) === hour;
+                return (
+                  <div key={hour} style={{
+                    display: 'flex', minHeight: 64, borderBottom: '1px solid var(--border-light, #f0f0f0)',
+                    position: 'relative',
+                  }}>
+                    {/* now indicator */}
+                    {isNowHour && (
+                      <div style={{
+                        position: 'absolute', left: 80, right: 0,
+                        top: `${((nowHour - hour) / 1) * 100}%`,
+                        height: 2, background: '#ef4444', zIndex: 2,
+                        boxShadow: '0 0 4px rgba(239,68,68,0.5)',
+                      }}>
+                        <div style={{ position: 'absolute', left: -5, top: -4, width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} />
+                      </div>
+                    )}
+                    {/* time label */}
+                    <div style={{
+                      width: 80, flexShrink: 0, padding: '8px 12px', fontSize: 12, fontWeight: 600,
+                      color: isNowHour ? '#ef4444' : 'var(--text-muted)', borderRight: '1px solid var(--border-light, #f0f0f0)',
+                      textAlign: 'right', fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {fmtHour(hour)}
+                    </div>
+                    {/* appointments in this hour */}
+                    <div style={{ flex: 1, padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {hourAppts.map(apt => {
+                        const c = getTypeColor(apt);
+                        return (
+                          <div key={apt.id}
+                            onClick={() => handleOpenChart(apt)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px',
+                              background: c.bg, borderLeft: `4px solid ${c.border}`, borderRadius: 8,
+                              cursor: 'pointer', transition: 'transform 0.1s',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'translateX(2px)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                          >
+                            <div style={{ fontWeight: 700, fontSize: 13, minWidth: 55, color: c.text, fontVariantNumeric: 'tabular-nums' }}>{apt.time}</div>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: '50%',
+                              background: `linear-gradient(135deg, ${c.border}, ${c.dot})`, color: '#fff',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontWeight: 700, fontSize: 10, flexShrink: 0,
+                            }}>
+                              {apt.patientName?.split(' ').map(n => n[0]).join('').slice(0,2)}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: 13, color: c.text }}>{apt.patientName}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                {apt.type} · {apt.duration || 30} min · {apt.visitType === 'Telehealth' ? '📹 ' : '🏥 '}{apt.visitType}
+                              </div>
+                            </div>
+                            <span style={{ fontSize: 11, padding: '2px 10px', borderRadius: 10, fontWeight: 600, background: apt.status === 'Checked In' ? '#dcfce7' : apt.status === 'Completed' ? '#e5e7eb' : '#dbeafe', color: apt.status === 'Checked In' ? '#166534' : apt.status === 'Completed' ? '#6b7280' : '#1e40af' }}>
+                              {apt.status}
+                            </span>
+                            {apt.date === todayKey && (
+                              <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+                                {(apt.status === 'Scheduled' || apt.status === 'Confirmed') && (
+                                  <button className="btn btn-sm btn-success" onClick={() => handleCheckIn(apt)} style={{ fontSize: 11, padding: '3px 10px' }}>Check In</button>
+                                )}
+                                {(apt.status === 'Checked In' || apt.status === 'In Progress') && (
+                                  <button className="btn btn-sm btn-success" onClick={() => handleGoToSession(apt)} style={{ fontSize: 11, padding: '3px 10px' }}>🩺 Session</button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        );
+      })()}
+
+      {/* ── Week View ── */}
+      {view === 'week' && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <button onClick={() => shiftWeek(-1)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)' }}>◀</button>
+            <button onClick={goToday} style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>Today</button>
+            <button onClick={() => shiftWeek(1)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)' }}>▶</button>
+            <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', marginLeft: 6 }}>
+              {weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          </div>
+
+          <div style={{ background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+            {/* Day column headers */}
+            <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(7, 1fr)', borderBottom: '2px solid var(--border)' }}>
+              <div style={{ padding: 8, borderRight: '1px solid var(--border-light, #f0f0f0)' }} />
+              {weekDays.map((d, i) => {
+                const isToday = isSame(d, TODAY);
+                const dayKey = toKey(d);
+                const dayBlocks = blockedByDate[dayKey] || [];
+                const ct = (aptsByDate[dayKey] || []).length;
+                return (
+                  <div key={i} style={{
+                    padding: '8px 6px', textAlign: 'center', borderRight: i < 6 ? '1px solid var(--border-light, #f0f0f0)' : 'none',
+                    background: isToday ? '#eff6ff' : dayBlocks.length > 0 ? 'rgba(201,43,43,0.04)' : 'transparent',
+                  }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: isToday ? '#3b82f6' : 'var(--text-muted)' }}>{WEEKDAYS[d.getDay()]}</div>
+                    <div style={{
+                      fontSize: 18, fontWeight: 800, lineHeight: 1.3,
+                      color: isToday ? '#fff' : 'var(--text-primary)',
+                      width: isToday ? 30 : 'auto', height: isToday ? 30 : 'auto',
+                      borderRadius: '50%', display: isToday ? 'inline-flex' : 'inline-block',
+                      alignItems: 'center', justifyContent: 'center',
+                      background: isToday ? '#3b82f6' : 'transparent',
+                    }}>
+                      {d.getDate()}
+                    </div>
+                    {ct > 0 && <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{ct} appt{ct !== 1 ? 's' : ''}</div>}
+                    {dayBlocks.length > 0 && <div style={{ fontSize: 9, color: '#c92b2b', fontWeight: 700 }}>⛔ Blocked</div>}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Time rows */}
+            {HOURS.map((hour) => {
+              const isNowHour = isSame(TODAY, TODAY) && Math.floor(TODAY.getHours() + TODAY.getMinutes() / 60) === hour;
+              return (
+                <div key={hour} style={{ display: 'grid', gridTemplateColumns: '70px repeat(7, 1fr)', borderBottom: '1px solid var(--border-light, #f0f0f0)', minHeight: 56 }}>
+                  {/* time gutter */}
+                  <div style={{
+                    padding: '4px 8px', fontSize: 11, fontWeight: 600, textAlign: 'right',
+                    color: isNowHour ? '#ef4444' : 'var(--text-muted)', borderRight: '1px solid var(--border-light, #f0f0f0)',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {fmtHour(hour)}
+                  </div>
+                  {/* 7 day columns */}
+                  {weekDays.map((d, di) => {
+                    const dayKey = toKey(d);
+                    const cellAppts = (aptsByDate[dayKey] || []).filter(a => {
+                      const h = parseTimeToHour(a.time);
+                      return h !== null && Math.floor(h) === hour;
+                    });
+                    const isToday = isSame(d, TODAY);
+                    return (
+                      <div key={di} style={{
+                        padding: '2px 3px', borderRight: di < 6 ? '1px solid var(--border-light, #f0f0f0)' : 'none',
+                        background: isToday && isNowHour ? 'rgba(239,68,68,0.04)' : isToday ? 'rgba(59,130,246,0.03)' : 'transparent',
+                        position: 'relative',
+                      }}>
+                        {cellAppts.map(apt => {
+                          const c = getTypeColor(apt);
+                          return (
+                            <div key={apt.id}
+                              onClick={() => handleOpenChart(apt)}
+                              title={`${apt.time} — ${apt.patientName}\n${apt.type} · ${apt.duration || 30} min · ${apt.visitType}\n${apt.status}`}
+                              style={{
+                                padding: '3px 5px', marginBottom: 2, borderRadius: 4,
+                                background: c.bg, borderLeft: `3px solid ${c.border}`,
+                                cursor: 'pointer', overflow: 'hidden', transition: 'transform 0.1s',
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                              onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                            >
+                              <div style={{ fontSize: 10, fontWeight: 700, color: c.text, lineHeight: 1.3 }}>
+                                {apt.time}
+                              </div>
+                              <div style={{ fontSize: 9.5, fontWeight: 600, color: c.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: 0.85 }}>
+                                {apt.patientName?.split(' ')[0]}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: 'flex', gap: 16, marginTop: 12, marginBottom: 16, flexWrap: 'wrap', fontSize: 11, color: 'var(--text-muted)' }}>
+            {[{ label: 'Follow-Up', color: '#3b82f6' }, { label: 'New Patient', color: '#f59e0b' }, { label: 'Telehealth', color: '#8b5cf6' }, { label: 'Blocked Day', color: '#c92b2b' }].map(l => (
+              <span key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: l.color, display: 'inline-block' }} />
+                {l.label}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* ── Calendar View ── */}
       {view === 'calendar' && (
