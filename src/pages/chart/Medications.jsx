@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePatient } from '../../contexts/PatientContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { medicationInsurance } from '../../data/mockData';
 
 // ── confirmation modal ─────────────────────────────────────────────────
 function ConfirmModal({ title, message, confirmLabel, confirmClass = 'btn-danger', onConfirm, onCancel, children }) {
@@ -163,7 +164,7 @@ function MedDetail({ med, patientId, onClose }) {
 
         {/* Tab bar */}
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', flexShrink: 0, marginTop: 8 }}>
-          {[['details', '📋 Details'], ['history', '📜 Rx History']].map(([key, label]) => (
+          {[['details', '📋 Details'], ['insurance', '🛡️ Insurance'], ['history', '📜 Rx History']].map(([key, label]) => (
             <button key={key} onClick={() => setDetailTab(key)} style={{
               flex: 1, padding: '8px 0', fontSize: 12, fontWeight: 700,
               background: 'none', border: 'none', cursor: 'pointer',
@@ -190,6 +191,51 @@ function MedDetail({ med, patientId, onClose }) {
           </div>
         </div>
         )}
+
+        {/* Insurance */}
+        {detailTab === 'insurance' && (() => {
+          const ins = medicationInsurance[med.id];
+          if (!ins) return (
+            <div style={{ flex: 1, padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              No insurance information on file for this medication.
+            </div>
+          );
+          const insRows = [
+            { label: 'Insurance', val: ins.insuranceName },
+            { label: 'Member ID', val: ins.memberId },
+            { label: 'Formulary Tier', val: ins.formularyTier },
+            { label: 'Rx Copay', val: ins.rxCopay === 0 ? '$0.00' : `$${ins.rxCopay.toFixed(2)}` },
+            { label: 'Prior Auth Required', val: ins.priorAuthRequired ? '✅ Yes' : '❌ No' },
+            { label: 'Coverage Status', val: ins.coverageStatus },
+            { label: 'Quantity Limit', val: ins.quantityLimit },
+            { label: 'Step Therapy', val: ins.stepTherapyRequired ? '✅ Required' : '❌ Not Required' },
+          ];
+          return (
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {insRows.map(({ label, val }) => (
+                  <div key={label} style={{
+                    display: 'flex', justifyContent: 'space-between', gap: 12,
+                    paddingBottom: 9, borderBottom: '1px solid var(--border)', fontSize: 13,
+                  }}>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0 }}>{label}</span>
+                    <span style={{ fontWeight: 500, textAlign: 'right', wordBreak: 'break-word' }}>{val}</span>
+                  </div>
+                ))}
+              </div>
+              {ins.coverageNotes && (
+                <div style={{
+                  marginTop: 14, padding: '10px 12px', borderRadius: 8, fontSize: 12,
+                  background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)',
+                  color: 'var(--text-secondary)', lineHeight: 1.6,
+                }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4, color: 'var(--text)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Coverage Notes</div>
+                  {ins.coverageNotes}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Rx History */}
         {detailTab === 'history' && (

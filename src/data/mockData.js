@@ -574,6 +574,32 @@ export const medications = {
   ],
 };
 
+// ========== MEDICATION INSURANCE / FORMULARY ==========
+export const medicationInsurance = {
+  // p1 – Blue Cross Blue Shield
+  m1: { insuranceName: 'Blue Cross Blue Shield', memberId: 'BCB123456789', formularyTier: 'Tier 1 – Generic', rxCopay: 10, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '90 tablets / 90 days', stepTherapyRequired: false, coverageNotes: 'Generic sertraline fully covered under behavioral health benefit.' },
+  m2: { insuranceName: 'Blue Cross Blue Shield', memberId: 'BCB123456789', formularyTier: 'Tier 1 – Generic', rxCopay: 10, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '30 tablets / 30 days', stepTherapyRequired: false, coverageNotes: 'Generic trazodone covered. PRN use approved.' },
+  m3: { insuranceName: 'Blue Cross Blue Shield', memberId: 'BCB123456789', formularyTier: 'Tier 1 – Generic', rxCopay: 10, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '90 tablets / 90 days', stepTherapyRequired: false, coverageNotes: 'Covered under medical benefit (diabetes management). Prescribed by PCP.' },
+  // p2 – Aetna
+  m4: { insuranceName: 'Aetna', memberId: 'AET987654321', formularyTier: 'Tier 2 – Preferred Brand', rxCopay: 35, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '90 capsules / 90 days', stepTherapyRequired: false, coverageNotes: 'Brand Effexor XR on preferred formulary. Generic venlafaxine ER available at Tier 1 ($15).' },
+  m5: { insuranceName: 'Aetna', memberId: 'AET987654321', formularyTier: 'Tier 1 – Generic', rxCopay: 15, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '30 tablets / 30 days', stepTherapyRequired: false, coverageNotes: 'Generic prazosin covered under behavioral health benefit for PTSD nightmares.' },
+  m6: { insuranceName: 'Aetna', memberId: 'AET987654321', formularyTier: 'Tier 1 – Generic', rxCopay: 15, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '120 tablets / 30 days', stepTherapyRequired: false, coverageNotes: 'OTC-strength hydroxyzine covered as Rx under behavioral health benefit.' },
+  // p3 – United Healthcare (primary) + Medicaid (secondary)
+  m7: { insuranceName: 'United Healthcare', memberId: 'UHC456789012', formularyTier: 'Tier 2 – Preferred', rxCopay: 15, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '90 tablets / 90 days', stepTherapyRequired: false, coverageNotes: 'Covered under SUD treatment benefit. Medicaid secondary covers remaining copay ($0 patient cost).' },
+  m8: { insuranceName: 'United Healthcare', memberId: 'UHC456789012', formularyTier: 'Tier 2 – Preferred Brand', rxCopay: 20, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '30 tablets / 30 days', stepTherapyRequired: false, coverageNotes: 'Brand Wellbutrin XL preferred. Medicaid secondary covers copay balance.' },
+  m9: { insuranceName: 'United Healthcare', memberId: 'UHC456789012', formularyTier: 'Tier 1 – Generic', rxCopay: 5, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '90 tablets / 90 days', stepTherapyRequired: false, coverageNotes: 'Generic lisinopril fully covered. Prescribed by external PCP Dr. William Davis.' },
+  // p4 – Cigna
+  m10: { insuranceName: 'Cigna', memberId: 'CIG321654987', formularyTier: 'Tier 2 – Preferred Brand', rxCopay: 30, priorAuthRequired: true, coverageStatus: 'Covered – PA Approved', quantityLimit: '30 capsules / 30 days (CII – no refills)', stepTherapyRequired: true, coverageNotes: 'Schedule II controlled substance. Prior authorization approved through 09/2026. Step therapy completed (failed behavioral interventions alone). PDMP check required each fill.' },
+  m11: { insuranceName: 'Cigna', memberId: 'CIG321654987', formularyTier: 'Tier 1 – Generic', rxCopay: 10, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '60 tablets / 30 days', stepTherapyRequired: false, coverageNotes: 'Generic buspirone covered under behavioral health benefit.' },
+  // p5 – Medicare (primary) + AARP Supplemental (secondary)
+  m12: { insuranceName: 'Medicare Part D', memberId: 'MCR567890123', formularyTier: 'Tier 1 – Generic', rxCopay: 0, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '30 tablets / 30 days', stepTherapyRequired: false, coverageNotes: 'Generic mirtazapine covered under Medicare Part D. AARP supplement covers any remaining cost. $0 patient responsibility.' },
+  m13: { insuranceName: 'Medicare Part D', memberId: 'MCR567890123', formularyTier: 'Tier 3 – Non-Preferred', rxCopay: 0, priorAuthRequired: false, coverageStatus: 'Covered – Quantity Limited', quantityLimit: '30 tablets / 30 days (max 60 days supply)', stepTherapyRequired: false, coverageNotes: 'Benzodiazepine covered under Part D with quantity limits. AARP supplement covers copay. Prescriber must document medical necessity for continued use beyond 90 days.' },
+  m14: { insuranceName: 'Medicare Part D', memberId: 'MCR567890123', formularyTier: 'Tier 1 – Generic', rxCopay: 0, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '30 tablets / 30 days', stepTherapyRequired: false, coverageNotes: 'Donepezil covered under Medicare Part D for Alzheimer\'s disease. AARP supplement covers remaining cost.' },
+  // p6 – Anthem
+  m15: { insuranceName: 'Anthem', memberId: 'ANT654987321', formularyTier: 'Tier 1 – Generic', rxCopay: 10, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '90 tablets / 90 days', stepTherapyRequired: false, coverageNotes: 'Generic lamotrigine covered. Mood stabilizer approved for bipolar I maintenance.' },
+  m16: { insuranceName: 'Anthem', memberId: 'ANT654987321', formularyTier: 'Tier 2 – Preferred Brand', rxCopay: 30, priorAuthRequired: false, coverageStatus: 'Covered', quantityLimit: '30 tablets / 30 days', stepTherapyRequired: false, coverageNotes: 'Brand Seroquel on preferred formulary. Generic quetiapine available at Tier 1 ($10).' },
+};
+
 // ========== IMMUNIZATIONS ==========
 export const immunizations = {
   p1: [
@@ -745,6 +771,29 @@ export const orders = {
   p6: [
     { id: 'o13', type: 'Lab', description: 'Lamotrigine Level, CBC, CMP', status: 'Pending', orderedDate: '2026-04-01', orderedBy: 'Dr. Chris L.', priority: 'Routine', notes: 'Therapeutic drug monitoring' },
   ],
+};
+
+// ========== ORDER INSURANCE / COVERAGE ==========
+export const orderInsurance = {
+  // p1 – Blue Cross Blue Shield
+  o1: { insuranceName: 'Blue Cross Blue Shield', memberId: 'BCB123456789', coverageStatus: 'Covered', priorAuthRequired: false, authorizationNumber: null, estimatedPatientCost: 0, coverageNotes: 'Routine labs fully covered under preventive benefit. No copay for in-network Quest Diagnostics.' },
+  o2: { insuranceName: 'Blue Cross Blue Shield', memberId: 'BCB123456789', coverageStatus: 'Covered', priorAuthRequired: false, authorizationNumber: null, estimatedPatientCost: 0, coverageNotes: 'Annual screening labs covered at 100% under preventive care. In-network lab required.' },
+  o3: { insuranceName: 'Blue Cross Blue Shield', memberId: 'BCB123456789', coverageStatus: 'Covered', priorAuthRequired: false, authorizationNumber: null, estimatedPatientCost: 30, coverageNotes: 'Behavioral health referral covered. Specialist copay of $30 per session applies. 30 outpatient MH visits/year included.' },
+  // p2 – Aetna
+  o4: { insuranceName: 'Aetna', memberId: 'AET987654321', coverageStatus: 'Covered', priorAuthRequired: false, authorizationNumber: null, estimatedPatientCost: 0, coverageNotes: 'Routine labs covered at 100% in-network. No cost sharing for preventive screening.' },
+  o5: { insuranceName: 'Aetna', memberId: 'AET987654321', coverageStatus: 'Covered', priorAuthRequired: false, authorizationNumber: null, estimatedPatientCost: 25, coverageNotes: 'EMDR therapy covered under behavioral health benefit. $25 specialist copay per session. Pre-authorization not required for initial 20 sessions.' },
+  o6: { insuranceName: 'Aetna', memberId: 'AET987654321', coverageStatus: 'Pending PA', priorAuthRequired: true, authorizationNumber: 'PA-2026-AET-44821', estimatedPatientCost: 150, coverageNotes: 'Brain MRI requires prior authorization. PA submitted 04/05/2026. Clinical documentation for medical necessity attached. Estimated patient cost reflects 20% coinsurance after deductible if approved.' },
+  // p3 – United Healthcare + Medicaid
+  o7: { insuranceName: 'United Healthcare', memberId: 'UHC456789012', coverageStatus: 'Covered', priorAuthRequired: false, authorizationNumber: null, estimatedPatientCost: 0, coverageNotes: 'Hepatic function panel and UDS covered under substance use disorder monitoring benefit. Medicaid secondary covers remaining balance. $0 patient cost.' },
+  o8: { insuranceName: 'United Healthcare', memberId: 'UHC456789012', coverageStatus: 'Covered', priorAuthRequired: false, authorizationNumber: null, estimatedPatientCost: 0, coverageNotes: 'Community support group referral — no insurance billing applicable. Free community resource.' },
+  // p4 – Cigna
+  o9: { insuranceName: 'Cigna', memberId: 'CIG321654987', coverageStatus: 'Covered', priorAuthRequired: false, authorizationNumber: null, estimatedPatientCost: 0, coverageNotes: 'Baseline labs covered at 100% under preventive benefit. Required for stimulant medication monitoring.' },
+  o10: { insuranceName: 'Cigna', memberId: 'CIG321654987', coverageStatus: 'Covered – PA Active', priorAuthRequired: true, authorizationNumber: 'PA-2026-CIG-33195', estimatedPatientCost: 30, coverageNotes: 'Schedule II prescription requires active prior authorization. PA approved through 09/30/2026. EPCS authentication pending provider action. $30 brand copay.' },
+  // p5 – Medicare + AARP
+  o11: { insuranceName: 'Medicare Part B', memberId: 'MCR567890123', coverageStatus: 'Covered', priorAuthRequired: true, authorizationNumber: 'PA-2026-MCR-77012', estimatedPatientCost: 0, coverageNotes: 'Neuropsychological testing covered under Medicare Part B with prior authorization. PA approved. AARP supplement covers 20% coinsurance. $0 patient cost.' },
+  o12: { insuranceName: 'Medicare Part B', memberId: 'MCR567890123', coverageStatus: 'Covered', priorAuthRequired: false, authorizationNumber: null, estimatedPatientCost: 0, coverageNotes: 'Diagnostic labs covered at 100% under Medicare Part B. No deductible or coinsurance for clinical lab services.' },
+  // p6 – Anthem
+  o13: { insuranceName: 'Anthem', memberId: 'ANT654987321', coverageStatus: 'Covered', priorAuthRequired: false, authorizationNumber: null, estimatedPatientCost: 0, coverageNotes: 'Therapeutic drug monitoring labs covered at 100% in-network. Required for lamotrigine level monitoring.' },
 };
 
 // ========== CLINICAL INBOX MESSAGES ==========
@@ -1903,6 +1952,280 @@ export const labFacilities = [
 // ========== ENCOUNTERS ==========
 export const encounters = {
   p1: [
+    {
+      id: 'enc-p1-0',
+      patientId: 'p1',
+      date: '2025-11-03',
+      time: '09:00',
+      type: 'Psychiatric Evaluation',
+      provider: 'u1',
+      providerName: 'Dr. Chris L., MD, PhD',
+      chiefComplaint: 'Depressed mood, anxiety, insomnia - referred by PCP for psychiatric evaluation',
+      status: 'Completed',
+      visitType: 'In-Person',
+      placeOfService: '11 - Office',
+      duration: 60,
+      cptCodes: ['90792', '96127'],
+      timeSpentMinutes: '60',
+      subjective: `IDENTIFYING INFORMATION:
+James Anderson is a 41-year-old married White male, English-speaking, referred by his primary care physician Dr. Sarah Mitchell for comprehensive psychiatric evaluation. He presents today accompanied by his wife Lisa.
+
+CHIEF COMPLAINT:
+"I've been feeling really down for the past several months. I can't sleep, I don't enjoy anything anymore, and my wife says I'm not the same person."
+
+HISTORY OF PRESENT ILLNESS:
+Mr. Anderson describes a gradual onset of depressive symptoms beginning approximately 6 months ago following a significant workplace reorganization in which he was demoted from his project management position. He reports persistent low mood present most of the day, nearly every day. He endorses marked anhedonia - he has stopped playing guitar (previously a daily hobby) and has withdrawn from social activities with friends and family. Sleep disturbance is prominent: he reports difficulty with sleep onset (typically lying awake 1.5-2 hours), middle-of-the-night awakenings (2-3 times per night), and early morning awakening around 4:30 AM with inability to return to sleep. Total sleep is estimated at 4-5 hours per night.
+
+Appetite is decreased with an unintentional weight loss of approximately 12 lbs over the past 4 months (from 185 lbs to 173 lbs). He reports difficulty concentrating at work, describing "brain fog" and difficulty completing routine tasks that previously required minimal effort. He endorsed feelings of worthlessness, stating "I feel like I'm letting everyone down - my wife, my kids, my boss."
+
+He reports generalized anxiety with excessive worry about finances, job security, and his children's well-being. He endorses physical symptoms of anxiety including chest tightness, intermittent shortness of breath, and muscle tension in the neck and shoulders. He reports two episodes consistent with panic attacks over the past 2 months - characterized by sudden onset of palpitations, diaphoresis, trembling, and fear of "losing control." These episodes lasted approximately 10-15 minutes and occurred in crowded settings (grocery store, work meeting).
+
+He denies active suicidal ideation, intent, or plan. He endorses occasional passive thoughts of "things would be easier if I wasn't around" but states he would never act on them due to his family. He denies homicidal ideation. He denies auditory or visual hallucinations, paranoid ideation, or other psychotic symptoms. He denies symptoms of mania or hypomania.
+
+Caffeine intake: 3-4 cups of coffee daily. He denies tobacco use. He reports drinking 2-3 beers on weekends (increased from rare use prior to symptom onset). He denies illicit substance use. He denies any recent use of supplements or herbal remedies.
+
+PSYCHIATRIC HISTORY:
+- Prior Diagnoses: No formal psychiatric diagnoses. He saw a counselor briefly in college for adjustment-related stress (approximately age 20) for 3-4 sessions.
+- Prior Psychiatric Medications: None.
+- Prior Hospitalizations: None psychiatric. One medical hospitalization for appendectomy (2018).
+- Prior Suicide Attempts: Denies.
+- Prior Self-Harm: Denies.
+- Prior substance abuse treatment: Denies.
+
+MEDICAL HISTORY:
+- Hypertension (diagnosed 2022) - controlled on lisinopril 10mg daily
+- Seasonal allergies - cetirizine PRN
+- GERD - famotidine 20mg PRN
+- Appendectomy (2018)
+- No history of head injury, seizures, or loss of consciousness
+- Last physical exam: 08/2025 - unremarkable except mildly elevated BP
+- Labs (from PCP, 10/2025): CBC WNL, CMP WNL, TSH 2.1 (normal), Lipid panel - LDL mildly elevated at 142
+
+FAMILY PSYCHIATRIC HISTORY:
+- Mother: History of depression, treated with fluoxetine for many years - "it helped her a lot"
+- Father: History of alcohol use disorder - achieved sobriety at age 55, in recovery
+- Maternal grandmother: "She had nerves" (likely anxiety disorder, untreated)
+- Paternal uncle: Completed suicide at age 48
+- Brother (age 38): No known psychiatric history
+- No known family history of bipolar disorder, schizophrenia, or autism spectrum disorder
+
+SOCIAL HISTORY:
+- Born and raised in Springfield, IL. Second of two children.
+- Education: Bachelor's degree in business administration (University of Illinois)
+- Employment: Currently employed as a project coordinator at a marketing firm (demoted from project manager 6 months ago due to corporate restructuring). He reports workplace dissatisfaction and feelings of inadequacy in new role.
+- Marital Status: Married to Lisa Anderson for 14 years. Describes relationship as "strained but she's been supportive." Reports decreased intimacy and communication difficulties.
+- Children: Two - Emily (age 12) and Matthew (age 9). Both healthy and doing well in school.
+- Housing: Owns a single-family home in Springfield. Stable housing.
+- Support System: Wife, brother in the area, two close friends (though he has been isolating)
+- Legal History: None
+- Firearms: Denies firearms in the home
+- Spirituality: Raised Methodist, attends church occasionally, finds some comfort in faith
+- Hobbies (prior): Guitar, hiking, cooking - all significantly reduced
+- Exercise: Previously walked 3-4 times/week - now sedentary for past 2 months
+
+DEVELOPMENTAL HISTORY:
+- Met all developmental milestones per patient report. No history of learning disabilities or special education services. No history of childhood abuse or neglect. Describes childhood as "normal and happy." Parents divorced when he was 16 - reports this was difficult but "managed okay."
+
+REVIEW OF SYSTEMS:
+Constitutional: Fatigue, decreased energy, weight loss (12 lbs/4 months)
+HEENT: Denies headaches, vision changes, hearing changes
+Cardiovascular: Occasional palpitations with anxiety; denies chest pain at rest
+Respiratory: Intermittent SOB with anxiety episodes only; denies cough, wheezing
+GI: Decreased appetite; occasional nausea; denies vomiting, diarrhea, constipation
+GU: Decreased libido; denies urinary symptoms
+MSK: Muscle tension in neck/shoulders; denies joint pain or swelling
+Neuro: "Brain fog," difficulty concentrating; denies numbness, tingling, weakness, tremor
+Skin: Denies rashes, lesions
+Endocrine: Denies heat/cold intolerance, excessive thirst or urination`,
+
+      mse: {
+        appearance: 'Casually Dressed',
+        behavior: 'Cooperative',
+        psychomotor: 'Decreased / Slowed',
+        eyeContact: 'Fair',
+        speech: 'Soft / Quiet',
+        mood: 'Depressed and anxious - "I feel like I\'m drowning"',
+        affect: 'Dysphoric',
+        affectCongruent: 'Congruent with Mood',
+        thoughtProcess: 'Linear & Goal-Directed',
+        thoughtContent: 'No SI/HI - Future-Oriented',
+        suicidalIdeation: 'Passive Ideation Only',
+        homicidalIdeation: 'Denied / None',
+        perceptions: 'WNL - No Hallucinations',
+        orientation: 'Alert & Oriented x4 (Person, Place, Time, Situation)',
+        memory: 'Intact - Recent & Remote',
+        concentration: 'Mildly Impaired',
+        insight: 'Good',
+        judgment: 'Good',
+        additionalNotes: 'Patient appeared younger than stated age. Grooming adequate but clothing wrinkled. Posture was slouched throughout interview. Frequent sighing noted. Tearful at times when discussing impact on family life. Speech was coherent but notably low in volume and reduced in spontaneity - required prompting for elaboration. No psychomotor agitation. Montreal Cognitive Assessment (MoCA) not administered today - clinical impression is that concentration difficulties are depression-related rather than neurocognitive.',
+      },
+
+      objective: `VITAL SIGNS:
+BP: 128/82 mmHg | HR: 76 bpm | Temp: 98.4F | RR: 16 | SpO2: 98% on RA | Weight: 173 lbs | Height: 5'10" | BMI: 24.8
+
+PHYSICAL EXAMINATION (focused):
+General: Alert, appears fatigued, no acute distress
+HEENT: Normocephalic, atraumatic. Pupils equal, round, reactive. Oropharynx clear.
+Cardiovascular: Regular rate and rhythm, no murmurs
+Respiratory: Clear to auscultation bilaterally
+Extremities: No edema, tremors, or involuntary movements
+Neurological: Cranial nerves II-XII grossly intact. Gait normal. No focal deficits.
+
+MENTAL STATUS EXAMINATION: (see structured MSE above)
+
+STANDARDIZED ASSESSMENTS:
+
+PHQ-9: 18/27 (Moderately Severe Depression)
+  Q1 (Anhedonia): 3 - Nearly every day
+  Q2 (Depressed mood): 3 - Nearly every day
+  Q3 (Sleep): 3 - Nearly every day
+  Q4 (Fatigue): 2 - More than half the days
+  Q5 (Appetite): 2 - More than half the days
+  Q6 (Self-esteem): 2 - More than half the days
+  Q7 (Concentration): 2 - More than half the days
+  Q8 (Psychomotor): 1 - Several days
+  Q9 (SI/Self-harm): 0 - Not at all
+  Functional impairment: "Very difficult" to do work, take care of things at home, get along with others
+
+GAD-7: 14/21 (Moderate Anxiety)
+  Endorses: nervousness (3), uncontrolled worry (2), worry about many things (2), difficulty relaxing (2), restlessness (2), irritability (2), feeling afraid (1)
+
+Columbia Suicide Severity Rating Scale (C-SSRS):
+  Wish to be dead: Yes (passive)
+  Non-specific active SI: No
+  Active SI with any methods: No
+  Active SI with intent: No
+  Active SI with plan: No
+  Suicide attempt (lifetime): No
+  Preparatory behavior: No
+  Classification: LOW RISK - passive ideation only, no intent, no plan, strong protective factors
+
+AUDIT-C: 4 (At-risk drinking - warrants monitoring)
+  Frequency: 2-4 times/month (1 pt)
+  Quantity: 3-4 drinks (1 pt)
+  Binge: Monthly (2 pts)
+
+Insomnia Severity Index (ISI): 19/28 (Clinical Insomnia - Moderate Severity)`,
+
+      assessment: `DIAGNOSTIC FORMULATION:
+
+Mr. Anderson is a 41-year-old married male with no prior psychiatric treatment history presenting with a 6-month history of worsening depressive and anxious symptoms temporally correlated with a significant occupational stressor (workplace demotion). His clinical presentation is consistent with Major Depressive Disorder, manifested by persistent depressed mood, marked anhedonia, significant insomnia, decreased appetite with weight loss, fatigue, difficulty concentrating, psychomotor retardation, and feelings of worthlessness. PHQ-9 score of 18 supports a moderately severe episode.
+
+Comorbid anxiety symptoms meet criteria for Generalized Anxiety Disorder with excessive, difficult-to-control worry across multiple domains, accompanied by restlessness, muscle tension, and concentration difficulty. GAD-7 score of 14 corroborates moderate anxiety. Additionally, he has experienced two discrete panic attacks with characteristic symptoms, though these do not yet meet frequency criteria for Panic Disorder - monitor closely.
+
+Alcohol use has increased from baseline but does not currently meet criteria for Alcohol Use Disorder. AUDIT-C of 4 warrants monitoring and psychoeducation regarding the depressogenic effects of alcohol and risk of self-medication.
+
+Passive suicidal ideation is noted but risk is mitigated by strong protective factors including family commitment, absence of plan/intent, no prior attempts, no access to firearms, and intact future orientation. Family history is notable for depression (mother), alcohol use disorder (father), and completed suicide (paternal uncle) - conferring increased genetic vulnerability.
+
+Medical differential considerations include hypothyroidism (TSH normal), anemia (CBC normal), and vitamin deficiency (not yet tested - will check B12 and folate). His hypertension is controlled.
+
+Biopsychosocial formulation:
+Biological: Family history of depression, possible genetic vulnerability (maternal depression, paternal uncle suicide), sleep deprivation exacerbating cognitive and mood symptoms, increased alcohol as depressogenic factor.
+Psychological: Cognitive distortions (worthlessness, inadequacy), loss of identity/role following demotion, reduced behavioral activation (withdrawal from hobbies and social supports).
+Social: Occupational stress, marital strain, social isolation, reduced support network engagement.
+
+DIAGNOSES:
+1. F32.1 - Major Depressive Disorder, Single Episode, Moderate (primary)
+2. F41.1 - Generalized Anxiety Disorder (secondary)
+3. G47.00 - Insomnia Disorder (secondary to mood/anxiety)
+4. I10 - Essential Hypertension (medical, controlled)
+5. R63.4 - Abnormal Weight Loss
+Rule out: F41.0 Panic Disorder (monitor for frequency of panic attacks)`,
+
+      plan: `COMPREHENSIVE TREATMENT PLAN:
+
+1. PHARMACOTHERAPY:
+   a. Start Sertraline (Zoloft) 50mg PO daily in the morning
+      Rationale: First-line SSRI with evidence for both MDD and GAD; patient's mother responded well to fluoxetine (SSRI class), suggesting possible family pharmacogenomic favorability
+      Titration plan: Increase to 100mg after 2 weeks if tolerated
+      Counseled on: Common side effects (GI upset, headache, sexual dysfunction, initial anxiety increase), serotonin syndrome risk, importance of daily compliance, informed that therapeutic response may take 4-6 weeks for full effect
+      Black box warning discussed: Risk of increased suicidality in young adults - though patient is 41, standard counseling provided
+      Avoid abrupt discontinuation
+
+   b. Start Hydroxyzine 25mg PO at bedtime PRN for insomnia/anxiety
+      Non-habit-forming anxiolytic/sedative for acute symptom relief
+      May increase to 50mg QHS if tolerated
+      Avoid operating heavy machinery until sedation profile known
+
+   c. Continue current medical medications:
+      Lisinopril 10mg daily (hypertension)
+      Cetirizine 10mg PRN (allergies)
+      Famotidine 20mg PRN (GERD)
+
+2. PSYCHOTHERAPY:
+   a. Individual therapy referral: Cognitive Behavioral Therapy (CBT) - weekly sessions recommended
+      Focus areas: cognitive restructuring (worthlessness schemas), behavioral activation, sleep hygiene (CBT-I components), anxiety management techniques
+      Referred to Dr. Sarah Kim, PsyD for intake - appointment to be scheduled by front desk
+   b. Consider couples therapy referral if marital strain persists
+
+3. SAFETY PLANNING:
+   a. Completed collaborative safety plan with patient and wife:
+      Warning signs: Increasing isolation, stopping medications, increased alcohol use, worsening sleep
+      Internal coping strategies: Deep breathing, playing guitar, going for a walk
+      Social contacts for distraction: Brother (Mark), friend (Tom)
+      Professional contacts: This office (555-234-0000), crisis line 988
+      Emergency: 911 or nearest ED
+      Means restriction: No firearms confirmed. Medications secured by wife Lisa.
+   b. Patient and wife verbalized understanding of safety plan
+   c. 988 Suicide & Crisis Lifeline card provided
+
+4. LABORATORY ORDERS:
+   Vitamin B12 level
+   Folate level
+   Comprehensive Metabolic Panel (baseline for medication monitoring)
+   CBC with differential
+   Urinalysis
+   Urine Drug Screen (baseline)
+   To be collected at Quest Diagnostics within 1 week
+
+5. SLEEP HYGIENE EDUCATION:
+   Reviewed stimulus control: Use bed for sleep and intimacy only; leave bedroom if awake > 20 min
+   Consistent wake time (6:30 AM daily regardless of sleep onset)
+   Eliminate screens 1 hour before bed
+   Reduce caffeine to 1 cup before noon (currently 3-4 cups daily)
+   Avoid alcohol as sleep aid
+   Handout provided on CBT-I principles
+
+6. LIFESTYLE RECOMMENDATIONS:
+   Resume walking: Goal 20-30 min daily at minimum
+   Resume guitar practice: Behavioral activation - schedule 15 min daily regardless of motivation
+   Limit alcohol to 2 or fewer standard drinks on any occasion; monitor for increase
+   Nutrition counseling considered if weight loss continues
+
+7. PSYCHOEDUCATION:
+   Discussed diagnosis of MDD and GAD in lay terms - patient and wife demonstrated understanding
+   Explained biopsychosocial model of depression
+   Discussed relationship between sleep, alcohol, and depression
+   Wife given caregiver support resources and NAMI family support group information
+   Brochure provided: "Understanding Depression - A Guide for Patients & Families"
+
+8. RISK MONITORING:
+   Current risk level: LOW (passive SI only, no plan/intent, multiple protective factors)
+   Risk factors: Male, age 40s, family Hx of suicide, increased alcohol, occupational stress, mild social isolation
+   Protective factors: Married with children, employed, no prior attempts, no firearms access, engaged in treatment, good insight, spiritual connection
+   Risk to be reassessed at every visit
+
+9. FOLLOW-UP:
+   Return to clinic in 2 weeks (November 17, 2025) for medication tolerability and dose adjustment
+   Sooner PRN if worsening symptoms, emergence of active SI, or intolerable side effects
+   Patient instructed to call office or 988 if in crisis before next appointment
+
+10. COORDINATION OF CARE:
+    Results letter to be sent to PCP Dr. Sarah Mitchell
+    Therapy referral to Dr. Sarah Kim, PsyD (CBT)
+    Patient signed releases for coordination of care with PCP and therapist
+
+TIME SPENT: 60 minutes face-to-face, of which >50% was spent in counseling and coordination of care.
+MEDICAL DECISION MAKING: High complexity - multiple diagnoses, new medications initiated, risk assessment performed.`,
+
+      diagnoses: ['F32.1', 'F41.1', 'G47.00'],
+      signedBy: 'Chris L., MD, PhD',
+      signedAt: '2025-11-03T10:35:00Z',
+      coSignRequired: false,
+      billingNotes: 'CPT 90792: Psychiatric Diagnostic Evaluation with Medical Services (60 min). CPT 96127: Brief Emotional/Behavioral Assessment (PHQ-9, GAD-7, C-SSRS, AUDIT-C, ISI administered and scored). Place of Service: 11 (Office). Medical Decision Making: High Complexity. Time-based documentation supports level of service. Insurance pre-authorization confirmed with BCBS.',
+      supportivePsychNotes: 'Provided empathic validation of patient\'s distress and normalization of help-seeking. Explored impact of occupational change on self-concept and identity. Patient became tearful discussing feelings of inadequacy as a father. Used reflective listening to facilitate emotional processing. Reinforced patient\'s strengths: stable marriage, engaged parenting, insight into symptoms, willingness to seek help. Wife expressed relief that patient is receiving care. Alliance building was primary therapeutic goal for this intake session.',
+      followUp: { needed: true, date: '2025-11-17', time: '09:00', duration: 30, note: 'Sertraline tolerability check, PHQ-9 repeat, dose adjustment to 100mg if tolerated' },
+    },
     { id: 'enc-p1-1', patientId: 'p1', date: '2026-03-12', time: '09:00', type: 'Follow-Up', provider: 'u1', providerName: 'Dr. Chris L.', chiefComplaint: 'Persistent low mood, trouble sleeping', status: 'Completed', subjective: 'Patient reports mood has been consistently low for the past 3 weeks. Sleep onset delayed by 1-2 hrs. Appetite decreased. Denies SI.', objective: 'Alert, cooperative. Affect flat. PHQ-9: 14 (moderate depression). BP 122/78, HR 72.', assessment: 'Major Depressive Disorder, moderate � partial response to current sertraline dose.', plan: 'Increase sertraline from 100mg to 150mg daily. Repeat PHQ-9 in 4 weeks. Referred to individual therapy.', diagnoses: ['F32.1'], signedBy: 'Dr. Chris L.', signedAt: '2026-03-12T10:15:00Z' },
     { id: 'enc-p1-2', patientId: 'p1', date: '2026-01-22', time: '09:00', type: 'Medication Management', provider: 'u1', providerName: 'Dr. Chris L.', chiefComplaint: 'Medication refill � sertraline', status: 'Completed', subjective: 'Patient doing well on sertraline 100mg. Reports mild improvement in mood and energy. No side effects.', objective: 'Alert, euthymic. PHQ-9: 10 (mild). BP 118/76.', assessment: 'MDD � improving. Continue current regimen.', plan: 'Refill sertraline 100mg #90. RTC 6 weeks.', diagnoses: ['F32.0'], signedBy: 'Dr. Chris L.', signedAt: '2026-01-22T09:50:00Z' },
   ],

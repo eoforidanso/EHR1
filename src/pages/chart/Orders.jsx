@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePatient } from '../../contexts/PatientContext';
-import { labOrderDatabase, labFacilities, users } from '../../data/mockData';
+import { labOrderDatabase, labFacilities, users, orderInsurance } from '../../data/mockData';
 
 export default function Orders({ patientId }) {
   const { currentUser } = useAuth();
@@ -14,6 +14,7 @@ export default function Orders({ patientId }) {
   const [selectedLabFacility, setSelectedLabFacility] = useState(null);
   const [labFacilityFocused, setLabFacilityFocused] = useState(false);
   const [forwardTo, setForwardTo] = useState('');
+  const [expandedOrder, setExpandedOrder] = useState(null);
 
   const isAdmin = currentUser?.role === 'admin';
   const providers = users.filter(u => u.role === 'prescriber');
@@ -194,11 +195,14 @@ export default function Orders({ patientId }) {
         <div className="card-body no-pad">
           <table className="data-table">
             <thead>
-              <tr><th>Type</th><th>Description</th><th>Status</th><th>Date</th><th>Ordered By</th><th>Priority</th><th>Notes</th></tr>
+              <tr><th>Type</th><th>Description</th><th>Status</th><th>Date</th><th>Ordered By</th><th>Priority</th><th>Insurance</th><th>Notes</th></tr>
             </thead>
             <tbody>
-              {patientOrders.map((o) => (
-                <tr key={o.id}>
+              {patientOrders.map((o) => {
+                const ins = orderInsurance[o.id];
+                return (
+                <React.Fragment key={o.id}>
+                <tr style={{ cursor: ins ? 'pointer' : 'default' }} onClick={() => ins && setExpandedOrder(expandedOrder === o.id ? null : o.id)}>
                   <td><span className={`badge ${o.type === 'Lab' ? 'badge-info' : o.type === 'Referral' ? 'badge-purple' : o.type === 'Imaging' ? 'badge-warning' : 'badge-gray'}`}>{o.type}</span></td>
                   <td className="font-medium">{o.description}</td>
                   <td>
@@ -213,11 +217,39 @@ export default function Orders({ patientId }) {
                   <td className="text-sm">{o.orderedDate}</td>
                   <td className="text-sm">{o.orderedBy}</td>
                   <td><span className={`badge ${o.priority === 'Urgent' || o.priority === 'STAT' ? 'badge-danger' : 'badge-gray'}`}>{o.priority}</span></td>
+                  <td className="text-sm">
+                    {ins ? (
+                      <span className={`badge ${ins.coverageStatus === 'Covered' ? 'badge-success' : ins.coverageStatus.includes('Pending') ? 'badge-warning' : 'badge-info'}`}>
+                        {ins.coverageStatus}
+                      </span>
+                    ) : <span className="text-muted">—</span>}
+                  </td>
                   <td className="text-sm text-muted">{o.notes}</td>
                 </tr>
-              ))}
+                {expandedOrder === o.id && ins && (
+                  <tr>
+                    <td colSpan={8} style={{ padding: 0, background: 'var(--bg)' }}>
+                      <div style={{ padding: '12px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px 24px', fontSize: 12 }}>
+                        <div><span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Insurance:</span> {ins.insuranceName}</div>
+                        <div><span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Member ID:</span> {ins.memberId}</div>
+                        <div><span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Coverage:</span> {ins.coverageStatus}</div>
+                        <div><span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Prior Auth:</span> {ins.priorAuthRequired ? `\u2705 Required` : '\u274c Not Required'}</div>
+                        {ins.authorizationNumber && <div><span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Auth #:</span> {ins.authorizationNumber}</div>}
+                        <div><span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Est. Patient Cost:</span> {ins.estimatedPatientCost === 0 ? '$0.00' : `$${ins.estimatedPatientCost.toFixed(2)}`}</div>
+                      </div>
+                      {ins.coverageNotes && (
+                        <div style={{ padding: '0 20px 12px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Notes:</span> {ins.coverageNotes}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
+              );
+              })}
               {patientOrders.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No orders</td></tr>
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No orders</td></tr>
               )}
             </tbody>
           </table>
