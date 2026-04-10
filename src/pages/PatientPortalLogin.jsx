@@ -181,7 +181,7 @@ export default function PatientPortalLogin() {
             marginTop: 28, paddingTop: 20, borderTop: '1px solid #e4e9f0',
           }}>
             <p style={{ fontSize: 11, color: '#8a9bb0', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>
-              Demo patient accounts (password: Patient1!!)
+              Demo patient accounts
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
               {demoAccounts.map((a) => (
