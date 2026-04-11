@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function PatientPortalLogin() {
@@ -205,9 +205,9 @@ export default function PatientPortalLogin() {
           {/* Link back to staff login */}
           <p style={{ marginTop: 24, fontSize: 12, color: '#8a9bb0', textAlign: 'center' }}>
             Staff?{' '}
-            <a href="/login" style={{ color: '#0060b6', fontWeight: 600, textDecoration: 'none' }}>
+            <Link to="/login" style={{ color: '#0060b6', fontWeight: 600, textDecoration: 'none' }}>
               Sign in to the clinical portal →
-            </a>
+            </Link>
           </p>
         </div>
       </div>

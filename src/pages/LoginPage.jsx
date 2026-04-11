@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { users } from '../data/mockData';
 
@@ -193,7 +193,7 @@ export default function LoginPage() {
           {/* Patient Portal CTA */}
           <div className="glass-card glass-card-patient-cta">
             <span>Are you a patient?</span>
-            <a href="/patient-portal-login">Sign in to the Patient Portal →</a>
+            <Link to="/patient-portal-login">Sign in to the Patient Portal →</Link>
           </div>
         </div>
       </div>
