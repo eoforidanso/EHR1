@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PatientProvider } from './contexts/PatientContext';
+import { applyTheme } from './pages/Settings';
 
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
@@ -21,6 +22,7 @@ import CareGaps from './pages/CareGaps';
 import StaffMessaging from './pages/StaffMessaging';
 import PatientPortalLogin from './pages/PatientPortalLogin';
 import PatientPortal from './pages/PatientPortal';
+import Settings from './pages/Settings';
 
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -70,6 +72,14 @@ function PatientPortalRoute() {
 }
 
 export default function App() {
+  // Restore persisted theme on mount
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('mindcare_theme'));
+      if (stored?.id) applyTheme(stored.id);
+    } catch { /* use defaults */ }
+  }, []);
+
   return (
     <BrowserRouter basename="/EHR1">
       <AuthProvider>
@@ -95,6 +105,7 @@ export default function App() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/care-gaps" element={<CareGaps />} />
             <Route path="/staff-messaging" element={<StaffMessaging />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Route>
 

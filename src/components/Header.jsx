@@ -81,6 +81,7 @@ export default function Header() {
     if (path.includes('/analytics')) return '📊 Analytics';
     if (path.includes('/care-gaps')) return '🎯 Care Gaps';
     if (path.includes('/staff-messaging')) return '💬 Staff Messaging';
+    if (path.includes('/settings')) return '⚙️ Settings';
     return 'MindCare';
   };
 
@@ -203,6 +204,9 @@ export default function Header() {
 
       {/* Right actions */}
       <div className="header-actions">
+        <button className="header-btn" title="Settings" onClick={() => navigate('/settings')}>
+          ⚙️
+        </button>
         <button className="header-btn" title="Staff Messaging" onClick={() => navigate('/staff-messaging')}>
           💬
         </button>

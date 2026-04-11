@@ -356,7 +356,7 @@ function PsychTherapyTabs({ d, setD }) {
               padding: '7px 14px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
               borderBottom: psychTab === t.key ? '2px solid #1a7f4b' : '2px solid transparent',
               marginBottom: -2,
-              background: psychTab === t.key ? 'rgba(26,127,75,0.07)' : 'transparent',
+              background: psychTab === t.key ? 'rgba(26,127,75,0.07)' : '#f7f9fc',
               color: psychTab === t.key ? '#1a7f4b' : 'var(--text-secondary)',
               borderRadius: '4px 4px 0 0',
             }}>
@@ -407,7 +407,8 @@ function MseSelect({ label, field, value, onChange }) {
       </label>
       <select className="form-input" value={value}
         onChange={(e) => onChange(field, e.target.value)}
-        style={{ fontSize: 12 }}>
+        style={{ fontSize: 12, background: '#fff' }}>
+        <option value="">— Select —</option>
         {(MSE_OPTIONS[field] || []).map((o) => <option key={o}>{o}</option>)}
       </select>
     </div>
@@ -583,7 +584,7 @@ function DiagnosesEditor({ diagnoses, onChange }) {
               style={{
                 padding: '5px 11px', borderRadius: 20, fontSize: 11.5, fontWeight: active ? 700 : 500,
                 cursor: 'pointer', border: `1.5px solid ${active ? cat.color : 'var(--border)'}`,
-                background: active ? cat.color : addedInCat > 0 ? `${cat.color}14` : '#fff',
+                background: active ? cat.color : addedInCat > 0 ? `${cat.color}14` : '#f7f9fc',
                 color: active ? '#fff' : addedInCat > 0 ? cat.color : 'var(--text-secondary)',
                 display: 'flex', alignItems: 'center', gap: 5,
               }}>
@@ -616,7 +617,7 @@ function DiagnosesEditor({ diagnoses, onChange }) {
             style={{
               padding: '3px 11px', borderRadius: 14, fontSize: 11, fontWeight: 700,
               cursor: 'pointer', border: `1.5px solid ${catData.color}`,
-              background: allInCatAdded ? catData.color : 'transparent',
+              background: allInCatAdded ? catData.color : '#fff',
               color: allInCatAdded ? '#fff' : catData.color,
               display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
             }}>
@@ -661,7 +662,7 @@ function DiagnosesEditor({ diagnoses, onChange }) {
                   {d.description || <em style={{ color: 'var(--text-muted)' }}>No description</em>}
                 </span>
                 <button type="button" onClick={() => onChange(diagnoses.filter((_, j) => j !== i))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 14, padding: '0 4px' }}>
+                  style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 4, cursor: 'pointer', color: 'var(--danger)', fontSize: 14, padding: '0 6px', lineHeight: '22px' }}>
                   ✕
                 </button>
               </div>
@@ -739,7 +740,7 @@ function CptEditor({ cptCodes, onChange, visitType }) {
           onClick={() => setShowAll((v) => !v)}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            background: 'none', border: '1.5px dashed var(--border)', borderRadius: 6,
+            background: '#f7f9fc', border: '1.5px dashed var(--border)', borderRadius: 6,
             padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
             color: 'var(--text-secondary)',
           }}>
@@ -784,7 +785,7 @@ function CptEditor({ cptCodes, onChange, visitType }) {
                     style={{ width: 44, padding: '2px 5px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 12, textAlign: 'center' }} />
                 </div>
                 <button type="button" onClick={() => onChange(cptCodes.filter((_, j) => j !== i))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 14, padding: '0 4px' }}>
+                  style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 4, cursor: 'pointer', color: 'var(--danger)', fontSize: 14, padding: '0 6px', lineHeight: '22px' }}>
                   ✕
                 </button>
               </div>
@@ -1222,6 +1223,29 @@ export default function Encounters({ patientId }) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn btn-sm" title="Copy forward — create new encounter from this one"
+              onClick={() => {
+                const creds = currentUser?.credentials ? `, ${currentUser.credentials}` : '';
+                const copied = {
+                  ...JSON.parse(JSON.stringify(enc)),
+                  id: undefined,
+                  date: today,
+                  time: nowTime,
+                  status: 'In Progress',
+                  provider: currentUser?.id || enc.provider,
+                  providerName: `${currentUser?.firstName || ''} ${currentUser?.lastName || ''}${creds}`.trim() || enc.providerName,
+                  signedBy: '',
+                  signedAt: null,
+                };
+                delete copied.id;
+                setDraft(copied);
+                setCreating(true);
+                setSelectedId(null);
+                setActiveSection('subjective');
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 15, lineHeight: 1 }}>↗</span> Copy Forward
+            </button>
             <button className="btn btn-sm" onClick={() => startEdit(enc)}>✏️ Edit</button>
             {enc.status !== 'Completed' && (
               <button className="btn btn-sm btn-primary" onClick={() => signEncounter(enc)}>✍️ Sign & Complete</button>
@@ -1445,8 +1469,8 @@ export default function Encounters({ patientId }) {
                     style={{
                       padding: '10px 12px', borderBottom: '1px solid var(--border-light)',
                       cursor: 'pointer',
-                      background: selectedId === enc.id ? 'var(--primary-light)' : 'transparent',
-                      borderLeft: `3px solid ${selectedId === enc.id ? 'var(--primary)' : 'transparent'}`,
+                      background: selectedId === enc.id ? 'var(--primary-light)' : '#fff',
+                      borderLeft: `3px solid ${selectedId === enc.id ? 'var(--primary)' : '#e2e8f0'}`,
                       transition: 'background 0.1s',
                     }}>
                     <div style={{ fontWeight: 700, fontSize: 12.5, color: selectedId === enc.id ? 'var(--primary)' : 'var(--text-primary)' }}>

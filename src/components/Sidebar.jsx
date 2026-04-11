@@ -171,6 +171,7 @@ export default function Sidebar() {
         <ul className="sidebar-nav">
           {navItem('/admin-toolkit','🗂️', 'Admin Toolkit')}
           {isAdmin && navItem('/btg-audit', '🔓', 'BTG Audit Log')}
+          {navItem('/settings', '⚙️', 'Settings')}
         </ul>
       </div>
 
