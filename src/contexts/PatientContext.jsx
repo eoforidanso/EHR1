@@ -166,10 +166,17 @@ export function PatientProvider({ children }) {
     [btgAccessGranted]
   );
 
-  const updateAppointmentStatus = useCallback((aptId, status) => {
+  const updateAppointmentStatus = useCallback((aptId, status, extra = {}) => {
     setAppointments((prev) =>
-      prev.map((a) => (a.id === aptId ? { ...a, status } : a))
+      prev.map((a) => (a.id === aptId ? { ...a, status, ...extra } : a))
     );
+  }, []);
+
+  const addAppointment = useCallback((appointment) => {
+    setAppointments((prev) => [
+      ...prev,
+      { ...appointment, id: `apt-${Date.now()}-${Math.random().toString(36).slice(2)}` },
+    ]);
   }, []);
 
   const addEncounter = useCallback((patientId, encounter) => {
@@ -226,6 +233,7 @@ export function PatientProvider({ children }) {
         addInboxMessage,
         appointments,
         updateAppointmentStatus,
+        addAppointment,
         encounters,
         addEncounter,
         updateEncounter,

@@ -6,7 +6,7 @@ export const users = [
   {
     id: 'u1',
     username: 'dr.chris',
-    password: 'Pass123!!',
+    password: 'Pass123!',
     firstName: 'Chris',
     lastName: 'L.',
     role: 'prescriber',
@@ -19,39 +19,9 @@ export const users = [
     twoFactorEnabled: true,
   },
   {
-    id: 'u2',
-    username: 'np.joseph',
-    password: 'Pass123!!',
-    firstName: 'Joseph',
-    lastName: '',
-    role: 'prescriber',
-    credentials: 'PMHNP-BC',
-    specialty: 'Psychiatric Mental Health',
-    npi: '0987654321',
-    deaNumber: 'FJ9876543',
-    email: 'joseph@mindcare.health',
-    epcsPin: '4456',
-    twoFactorEnabled: true,
-  },
-  {
-    id: 'u3',
-    username: 'irina.s',
-    password: 'Pass123!!',
-    firstName: 'Irina',
-    lastName: 'S.',
-    role: 'prescriber',
-    credentials: 'MD',
-    specialty: 'Psychiatry',
-    npi: '1122334455',
-    deaNumber: 'FS1122334',
-    email: 'irina.s@mindcare.health',
-    epcsPin: '7743',
-    twoFactorEnabled: true,
-  },
-  {
     id: 'u4',
     username: 'nurse.kelly',
-    password: 'Pass123!!',
+    password: 'Pass123!',
     firstName: 'Kelly',
     lastName: 'Chen',
     role: 'nurse',
@@ -63,7 +33,7 @@ export const users = [
   {
     id: 'u5',
     username: 'admin',
-    password: 'Pass123!!',
+    password: 'Pass123!',
     firstName: 'Admin',
     lastName: 'User',
     role: 'admin',
@@ -73,13 +43,51 @@ export const users = [
     email: 'admin@mindcare.health',
   },
 
+  {
+    id: 'u6',
+    username: 'baz',
+    password: 'Pass123!',
+    firstName: 'Baz',
+    lastName: '',
+    role: 'admin',
+    credentials: '',
+    specialty: '',
+    npi: '',
+    email: 'baz@mindcare.health',
+  },
+  {
+    id: 'u7',
+    username: 'amena',
+    password: 'Pass123!',
+    firstName: 'Amena',
+    lastName: '',
+    role: 'admin',
+    credentials: '',
+    specialty: '',
+    npi: '',
+    email: 'amena@mindcare.health',
+  },
+
+  {
+    id: 'u8',
+    username: 'april.t',
+    password: 'Pass123!',
+    firstName: 'April',
+    lastName: 'T.',
+    role: 'therapist',
+    credentials: 'LCSW',
+    specialty: 'Individual & Group Therapy',
+    npi: '3344556677',
+    email: 'april.t@mindcare.health',
+  },
+
   // ── Patient portal accounts ──────────────────────────────────
-  { id: 'pat-p1', username: 'james.anderson', password: 'Patient1!!', firstName: 'James', lastName: 'Anderson', role: 'patient', patientId: 'p1', email: 'james.anderson@email.com' },
-  { id: 'pat-p2', username: 'maria.garcia',   password: 'Patient1!!', firstName: 'Maria', lastName: 'Garcia',   role: 'patient', patientId: 'p2', email: 'maria.garcia@email.com' },
-  { id: 'pat-p3', username: 'robert.chen',    password: 'Patient1!!', firstName: 'Robert', lastName: 'Chen',   role: 'patient', patientId: 'p3', email: 'robert.chen@email.com' },
-  { id: 'pat-p4', username: 'ashley.kim',     password: 'Patient1!!', firstName: 'Ashley', lastName: 'Kim',    role: 'patient', patientId: 'p4', email: 'ashley.kim@email.com' },
-  { id: 'pat-p5', username: 'dorothy.wilson', password: 'Patient1!!', firstName: 'Dorothy', lastName: 'Wilson', role: 'patient', patientId: 'p5', email: 'dorothy.wilson@email.com' },
-  { id: 'pat-p6', username: 'marcus.brown',   password: 'Patient1!!', firstName: 'Marcus', lastName: 'Brown',  role: 'patient', patientId: 'p6', email: 'marcus.brown@email.com' },
+  { id: 'pat-p1', username: 'james.anderson', password: 'Pass123!', firstName: 'James', lastName: 'Anderson', role: 'patient', patientId: 'p1', email: 'james.anderson@email.com' },
+  { id: 'pat-p2', username: 'maria.garcia',   password: 'Pass123!', firstName: 'Maria', lastName: 'Garcia',   role: 'patient', patientId: 'p2', email: 'maria.garcia@email.com' },
+  { id: 'pat-p3', username: 'robert.chen',    password: 'Pass123!', firstName: 'Robert', lastName: 'Chen',   role: 'patient', patientId: 'p3', email: 'robert.chen@email.com' },
+  { id: 'pat-p4', username: 'ashley.kim',     password: 'Pass123!', firstName: 'Ashley', lastName: 'Kim',    role: 'patient', patientId: 'p4', email: 'ashley.kim@email.com' },
+  { id: 'pat-p5', username: 'dorothy.wilson', password: 'Pass123!', firstName: 'Dorothy', lastName: 'Wilson', role: 'patient', patientId: 'p5', email: 'dorothy.wilson@email.com' },
+  { id: 'pat-p6', username: 'marcus.brown',   password: 'Pass123!', firstName: 'Marcus', lastName: 'Brown',  role: 'patient', patientId: 'p6', email: 'marcus.brown@email.com' },
 ];
 
 // ========== PATIENTS ==========
@@ -876,6 +884,20 @@ export const appointments = [
   { id: 'apt40', patientId: 'p1', patientName: 'James Anderson', provider: 'u1', providerName: 'Dr. Chris L.', date: '2026-06-24', time: '09:00', duration: 30, type: 'Follow-Up', status: 'Scheduled', reason: 'Depression check-in, PHQ-9', visitType: 'In-Person', room: 'Room 3' },
   { id: 'apt41', patientId: 'p4', patientName: 'Emily Chen', provider: 'u2', providerName: 'Joseph', date: '2026-06-26', time: '09:30', duration: 30, type: 'Follow-Up', status: 'Scheduled', reason: 'ADHD stimulant refill', visitType: 'In-Person', room: 'Room 1' },
   { id: 'apt42', patientId: 'p5', patientName: 'Robert Wilson', provider: 'u1', providerName: 'Dr. Chris L.', date: '2026-06-30', time: '13:00', duration: 45, type: 'Follow-Up', status: 'Scheduled', reason: 'Dementia monitoring, family session', visitType: 'In-Person', room: 'Room 3' },
+
+  // ── Therapist (april.t / u8) sessions ──
+  { id: 'tapt1', patientId: 'p1', patientName: 'James Anderson', provider: 'u8', providerName: 'April T., LCSW', date: '2026-04-09', time: '09:30', duration: 50, type: 'Individual Therapy', status: 'Checked In', reason: 'CBT - depression & anxiety, cognitive restructuring', visitType: 'In-Person', room: 'Room 5', therapyModality: 'CBT', sessionNumber: 14 },
+  { id: 'tapt2', patientId: 'p2', patientName: 'Maria Garcia', provider: 'u8', providerName: 'April T., LCSW', date: '2026-04-09', time: '11:00', duration: 60, type: 'Individual Therapy', status: 'Scheduled', reason: 'Trauma-focused CBT - PTSD processing, EMDR prep', visitType: 'In-Person', room: 'Room 5', therapyModality: 'TF-CBT', sessionNumber: 8 },
+  { id: 'tapt3', patientId: 'p4', patientName: 'Emily Chen', provider: 'u8', providerName: 'April T., LCSW', date: '2026-04-09', time: '13:00', duration: 50, type: 'Individual Therapy', status: 'Scheduled', reason: 'Anxiety management, DBT skills, body image work', visitType: 'Telehealth', room: 'Virtual', therapyModality: 'DBT', sessionNumber: 6 },
+  { id: 'tapt4', patientId: 'p3', patientName: 'David Thompson', provider: 'u8', providerName: 'April T., LCSW', date: '2026-04-09', time: '14:00', duration: 50, type: 'Individual Therapy', status: 'Confirmed', reason: 'SUD counseling - relapse prevention, motivational enhancement', visitType: 'In-Person', room: 'Room 5', therapyModality: 'MET/CBT', sessionNumber: 22 },
+  { id: 'tapt5', patientId: null, patientName: 'Group Session - MDD/Anxiety', provider: 'u8', providerName: 'April T., LCSW', date: '2026-04-09', time: '15:00', duration: 90, type: 'Group Therapy', status: 'Scheduled', reason: 'Weekly mood management group - CBT skills', visitType: 'In-Person', room: 'Group Room A', therapyModality: 'Group CBT', sessionNumber: 18, groupMembers: ['p1', 'p4', 'p6'] },
+
+  // Future therapist sessions
+  { id: 'tapt6', patientId: 'p1', patientName: 'James Anderson', provider: 'u8', providerName: 'April T., LCSW', date: '2026-04-16', time: '09:30', duration: 50, type: 'Individual Therapy', status: 'Scheduled', reason: 'CBT - behavioral activation, thought records', visitType: 'In-Person', room: 'Room 5', therapyModality: 'CBT', sessionNumber: 15 },
+  { id: 'tapt7', patientId: 'p2', patientName: 'Maria Garcia', provider: 'u8', providerName: 'April T., LCSW', date: '2026-04-16', time: '11:00', duration: 60, type: 'Individual Therapy', status: 'Scheduled', reason: 'Trauma processing - EMDR session 2', visitType: 'In-Person', room: 'Room 5', therapyModality: 'EMDR', sessionNumber: 9 },
+  { id: 'tapt8', patientId: 'p6', patientName: 'Aisha Patel', provider: 'u8', providerName: 'April T., LCSW', date: '2026-04-16', time: '14:00', duration: 50, type: 'Individual Therapy', status: 'Scheduled', reason: 'Mood regulation, interpersonal effectiveness (bipolar psychoeducation)', visitType: 'Telehealth', room: 'Virtual', therapyModality: 'IPSRT', sessionNumber: 11 },
+  { id: 'tapt9', patientId: 'p4', patientName: 'Emily Chen', provider: 'u8', providerName: 'April T., LCSW', date: '2026-04-23', time: '13:00', duration: 50, type: 'Individual Therapy', status: 'Scheduled', reason: 'DBT skills - distress tolerance review', visitType: 'Telehealth', room: 'Virtual', therapyModality: 'DBT', sessionNumber: 7 },
+  { id: 'tapt10', patientId: 'p3', patientName: 'David Thompson', provider: 'u8', providerName: 'April T., LCSW', date: '2026-04-23', time: '14:00', duration: 50, type: 'Individual Therapy', status: 'Scheduled', reason: 'Relapse prevention - coping skills', visitType: 'In-Person', room: 'Room 5', therapyModality: 'MET/CBT', sessionNumber: 23 },
 ];
 
 // ========== ENCOUNTER HISTORY ==========

@@ -276,8 +276,16 @@ function MedDetail({ med, patientId, onClose }) {
           padding: '14px 20px', borderTop: '1px solid var(--border)',
           display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0,
         }}>
-          {/* Refill */}
-          {med.status === 'Active' && (
+          {/* Therapist — read-only notice */}
+          {currentUser?.role === 'therapist' && (
+            <div style={{ padding: '10px 12px', borderRadius: 8, background: '#fef3c7', border: '1px solid #fde68a', fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+              🚫 <strong>Therapists cannot write medication orders.</strong><br />
+              Contact the prescribing MD to authorize refills, discontinue, or modify medications.
+            </div>
+          )}
+
+          {/* Refill — prescribers only */}
+          {med.status === 'Active' && currentUser?.role === 'prescriber' && (
             <button className="btn btn-primary"
               style={{ width: '100%' }}
               onClick={() => setConfirm('refill')}>
@@ -285,8 +293,8 @@ function MedDetail({ med, patientId, onClose }) {
             </button>
           )}
 
-          {/* Discontinue */}
-          {med.status === 'Active' && (
+          {/* Discontinue — not available to therapists */}
+          {med.status === 'Active' && currentUser?.role !== 'therapist' && (
             <button className="btn"
               style={{ width: '100%', background: 'rgba(217,119,6,0.1)', color: '#d97706', border: '1px solid rgba(217,119,6,0.3)' }}
               onClick={() => setConfirm('discontinue')}>
@@ -294,12 +302,14 @@ function MedDetail({ med, patientId, onClose }) {
             </button>
           )}
 
-          {/* Delete */}
-          <button className="btn"
-            style={{ width: '100%', background: 'rgba(220,38,38,0.07)', color: 'var(--danger)', border: '1px solid rgba(220,38,38,0.2)' }}
-            onClick={() => setConfirm('delete')}>
-            🗑️ Delete Medication Record
-          </button>
+          {/* Delete — not available to therapists */}
+          {currentUser?.role !== 'therapist' && (
+            <button className="btn"
+              style={{ width: '100%', background: 'rgba(220,38,38,0.07)', color: 'var(--danger)', border: '1px solid rgba(220,38,38,0.2)' }}
+              onClick={() => setConfirm('delete')}>
+              🗑️ Delete Medication Record
+            </button>
+          )}
         </div>
       </div>
 
@@ -372,7 +382,9 @@ function MedDetail({ med, patientId, onClose }) {
 // ── main component ─────────────────────────────────────────────────────
 export default function Medications({ patientId }) {
   const { meds } = usePatient();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const isTherapist = currentUser?.role === 'therapist';
 
   const [selectedMed, setSelectedMed] = useState(null);
 
@@ -385,9 +397,11 @@ export default function Medications({ patientId }) {
       <div className="card">
         <div className="card-header">
           <h2>💊 Medications ({active.length} active)</h2>
-          <button className="btn btn-sm btn-primary" onClick={() => navigate('/prescribe')}>
-            + New Prescription
-          </button>
+          {!isTherapist && (
+            <button className="btn btn-sm btn-primary" onClick={() => navigate('/prescribe')}>
+              + New Prescription
+            </button>
+          )}
         </div>
         <div className="card-body no-pad">
           <table className="data-table">

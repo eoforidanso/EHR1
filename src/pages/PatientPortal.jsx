@@ -203,7 +203,7 @@ const TABS = [
 
 export default function PatientPortal() {
   const { currentUser, logout } = useAuth();
-  const { patients, meds, appointments, assessmentScores, addInboxMessage, inboxMessages } = usePatient();
+  const { patients, meds, appointments, assessmentScores, addInboxMessage, inboxMessages, updateAppointmentStatus } = usePatient();
 
   const [activeTab, setActiveTab] = useState('home');
   const patientId = currentUser?.patientId;
@@ -226,6 +226,96 @@ export default function PatientPortal() {
   const [preferredPharmacy, setPreferredPharmacy] = useState(() => patMeds[0]?.pharmacy || PHARMACIES[0]);
   const [preferredLab, setPreferredLab] = useState(LABS[0]);
   const [prefSaved, setPrefSaved] = useState(false);
+
+  /* ── Reminder helpers ────────────────────────────────────── */
+  const todayKey = new Date().toISOString().split('T')[0];
+  const tomorrowKey = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const in48hAppts = futureAppts.filter(a =>
+    (a.date === todayKey || a.date === tomorrowKey) &&
+    (a.status === 'Scheduled' || a.status === 'Confirmed')
+  );
+  const todayCheckableAppts = futureAppts.filter(a =>
+    a.date === todayKey && (a.status === 'Scheduled' || a.status === 'Confirmed')
+  );
+
+  /* ── Self-scheduling ─────────────────────────────────────── */
+  const [showSelfSchedule, setShowSelfSchedule] = useState(false);
+  const [selfSchedForm, setSelfSchedForm] = useState({
+    preferredDate1: '', preferredDate2: '', preferredDate3: '',
+    visitType: 'In-Person', reason: '', notes: '',
+  });
+  const [scheduleSubmitted, setScheduleSubmitted] = useState(false);
+
+  const submitSelfSchedule = () => {
+    addInboxMessage({
+      type: 'Staff Message',
+      from: `${currentUser?.firstName} ${currentUser?.lastName} (Patient Portal)`,
+      subject: `Appointment Request — ${currentUser?.firstName} ${currentUser?.lastName}`,
+      body: `Patient is requesting an appointment.\n\nPatient: ${patient?.firstName} ${patient?.lastName} (${patient?.mrn})\nVisit Type: ${selfSchedForm.visitType}\nReason: ${selfSchedForm.reason}\nPreferred Date 1: ${selfSchedForm.preferredDate1||'—'}\nPreferred Date 2: ${selfSchedForm.preferredDate2||'—'}\nPreferred Date 3: ${selfSchedForm.preferredDate3||'—'}\nNotes: ${selfSchedForm.notes||'None'}`,
+      patient: patientId,
+      patientName: patient ? `${patient.firstName} ${patient.lastName}` : '',
+      date: new Date().toISOString().split('T')[0],
+      status: 'Unread',
+      urgent: false,
+    });
+    setScheduleSubmitted(true);
+    setTimeout(() => { setShowSelfSchedule(false); setScheduleSubmitted(false); setSelfSchedForm({ preferredDate1:'', preferredDate2:'', preferredDate3:'', visitType:'In-Person', reason:'', notes:'' }); }, 3500);
+  };
+
+  /* ── Online check-in ─────────────────────────────────────── */
+  const [checkInApt, setCheckInApt] = useState(null);
+  const [checkInStep, setCheckInStep] = useState(1);
+  const [checkInData, setCheckInData] = useState({ reason: '', symptoms: '', emergencyName: '', emergencyPhone: '', consentSigned: false });
+  const [checkInComplete, setCheckInComplete] = useState({});
+
+  const submitCheckIn = (apt) => {
+    updateAppointmentStatus(apt.id, 'Checked In', { checkInTime: Date.now(), onlineCheckIn: true });
+    addInboxMessage({
+      type: 'Check-in Alert',
+      from: 'Patient Portal',
+      subject: `Online Check-In — ${apt.patientName}`,
+      body: `${apt.patientName} has completed online check-in for their ${apt.time} appointment.\n\nReason for Visit: ${checkInData.reason || apt.reason}\nCurrent Symptoms: ${checkInData.symptoms || 'None noted'}\nEmergency Contact: ${checkInData.emergencyName} — ${checkInData.emergencyPhone}\nConsent: Signed electronically`,
+      patient: patientId,
+      patientName: apt.patientName,
+      date: new Date().toISOString().split('T')[0],
+      status: 'Unread',
+      urgent: false,
+    });
+    setCheckInComplete(prev => ({ ...prev, [apt.id]: true }));
+    setCheckInApt(null);
+    setCheckInStep(1);
+    setCheckInData({ reason: '', symptoms: '', emergencyName: '', emergencyPhone: '', consentSigned: false });
+  };
+
+  /* ── Insurance eligibility ───────────────────────────────── */
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
+  const [eligibilityResult, setEligibilityResult] = useState(null);
+
+  const runEligibilityCheck = () => {
+    setEligibilityLoading(true);
+    setEligibilityResult(null);
+    setTimeout(() => {
+      const hasInsurance = !!(insuranceForm.primaryName && insuranceForm.primaryMemberId);
+      setEligibilityResult(hasInsurance ? {
+        status: 'eligible',
+        plan: insuranceForm.primaryName || 'Unknown Plan',
+        memberId: insuranceForm.primaryMemberId,
+        groupNumber: insuranceForm.primaryGroup || '—',
+        copay: insuranceForm.primaryCopay || patient?.insurance?.primary?.copay,
+        deductible: '$1,500',
+        deductibleMet: '$850',
+        outOfPocketMax: '$4,000',
+        outOfPocketMet: '$850',
+        mentalHealth: 'Covered — $30 copay / visit',
+        effectiveDate: '01/01/2026',
+        checkedAt: new Date().toLocaleTimeString(),
+      } : {
+        status: 'needs_info',
+        checkedAt: new Date().toLocaleTimeString(),
+      });
+      setEligibilityLoading(false);
+    }, 1800);
+  };
 
   /* ── Messaging ───────────────────────────────────────────── */
   const [messages, setMessages] = useState(() => {
@@ -469,6 +559,30 @@ export default function PatientPortal() {
                 <button onClick={() => setActiveTab('assessments')} style={{ padding: '8px 18px', borderRadius: 8, background: '#f59e0b', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>📊 Complete Assessments</button>
               </div>
             </div>
+
+            {/* Appointment reminder banner */}
+            {in48hAppts.length > 0 && (
+              <div style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fef9ee 100%)', border: '1.5px solid #fde068', borderRadius: 12, padding: '14px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
+                <span style={{ fontSize: 28, flexShrink: 0 }}>⏰</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: '#92400e', marginBottom: 4 }}>
+                    Appointment Reminder
+                  </div>
+                  {in48hAppts.map(a => (
+                    <div key={a.id} style={{ fontSize: 13, color: '#78350f' }}>
+                      <strong>{a.date === todayKey ? '🔴 TODAY' : '🟡 TOMORROW'}</strong> — {a.type} with {a.providerName} at <strong>{a.time}</strong> ({a.visitType})
+                    </div>
+                  ))}
+                </div>
+                {todayCheckableAppts.length > 0 && (
+                  <button
+                    onClick={() => { setActiveTab('appointments'); }}
+                    style={{ padding: '8px 18px', borderRadius: 8, background: '#d97706', color: '#fff', border: 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>
+                    ✅ Check In Online
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Quick stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
@@ -716,47 +830,87 @@ export default function PatientPortal() {
         {/* ════════════ APPOINTMENTS TAB ════════════ */}
         {activeTab === 'appointments' && (
           <div style={{ animation: 'fadeInUp 0.3s ease both' }}>
+
+            {/* ── Reminder banners ── */}
+            {in48hAppts.map(a => (
+              <div key={a.id} style={{ background: a.date === todayKey ? '#fef2f2' : '#fef3c7', border: `1.5px solid ${a.date === todayKey ? '#fca5a5' : '#fde068'}`, borderRadius: 10, padding: '12px 18px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 22 }}>{a.date === todayKey ? '🔴' : '🟡'}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: a.date === todayKey ? '#991b1b' : '#92400e' }}>
+                    {a.date === todayKey ? 'You have an appointment TODAY' : 'You have an appointment TOMORROW'}
+                  </div>
+                  <div style={{ fontSize: 12, color: a.date === todayKey ? '#7f1d1d' : '#78350f', marginTop: 2 }}>
+                    {a.type} with {a.providerName} at {a.time} · {a.visitType}
+                  </div>
+                </div>
+                {a.date === todayKey && !checkInComplete[a.id] && a.status !== 'Checked In' && (
+                  <button onClick={() => { setCheckInApt(a); setCheckInStep(1); }}
+                    style={{ padding: '8px 18px', borderRadius: 8, background: '#dc2626', color: '#fff', border: 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>
+                    ✅ Check In Now
+                  </button>
+                )}
+                {(checkInComplete[a.id] || a.status === 'Checked In') && (
+                  <span style={{ padding: '6px 14px', borderRadius: 8, background: '#dcfce7', color: '#166534', fontWeight: 700, fontSize: 12 }}>✅ Checked In</span>
+                )}
+              </div>
+            ))}
+
+            {/* ── Header + Request button ── */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1e293b' }}>📅 My Appointments</h2>
+              <button onClick={() => setShowSelfSchedule(true)}
+                style={{ padding: '8px 18px', borderRadius: 8, background: '#0066cc', color: '#fff', border: 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                + Request Appointment
+              </button>
+            </div>
+
             <div style={cardStyle}>
-              <div style={cardHeaderStyle()}>📅 My Appointments</div>
               <div>
                 {futureAppts.length === 0 ? (
                   <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
                     <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
                     <div style={{ fontWeight: 700 }}>No upcoming appointments</div>
-                    <p style={{ fontSize: 12, marginTop: 4 }}>Contact your care team to schedule.</p>
+                    <p style={{ fontSize: 12, marginTop: 4 }}>
+                      <button onClick={() => setShowSelfSchedule(true)} style={{ background: 'none', border: 'none', color: '#0066cc', fontSize: 13, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>Request an appointment</button>
+                    </p>
                   </div>
                 ) : futureAppts.map((a, idx) => {
                   const dt = new Date(a.date + 'T00:00:00');
                   const isNext = idx === 0;
+                  const isToday = a.date === todayKey;
+                  const isTomorrow = a.date === tomorrowKey;
+                  const alreadyCheckedIn = checkInComplete[a.id] || a.status === 'Checked In';
+                  const canCheckIn = isToday && (a.status === 'Scheduled' || a.status === 'Confirmed') && !alreadyCheckedIn;
                   return (
                     <div key={a.id} style={{
                       padding: '16px 18px', borderBottom: '1px solid #f1f5f9',
                       display: 'flex', alignItems: 'center', gap: 14,
-                      background: isNext ? '#eff6ff' : 'transparent',
+                      background: isToday ? '#fef9f0' : isNext ? '#eff6ff' : 'transparent',
                     }}>
                       {/* Date block */}
                       <div style={{
                         width: 52, height: 52, borderRadius: 10, flexShrink: 0, textAlign: 'center',
-                        background: isNext ? '#0066cc' : '#f1f5f9',
-                        color: isNext ? '#fff' : '#1e293b',
+                        background: isToday ? '#d97706' : isNext ? '#0066cc' : '#f1f5f9',
+                        color: isToday || isNext ? '#fff' : '#1e293b',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', opacity: 0.8 }}>
-                          {dt.toLocaleDateString('en-US', { month: 'short' })}
+                        <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', opacity: 0.85 }}>
+                          {isToday ? 'TODAY' : isTomorrow ? 'TMRW' : dt.toLocaleDateString('en-US', { month: 'short' })}
                         </div>
-                        <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1 }}>{dt.getDate()}</div>
+                        {!isToday && !isTomorrow && <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1 }}>{dt.getDate()}</div>}
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>
                           {a.type}
-                          {isNext && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#dcfce7', color: '#065f46', marginLeft: 8 }}>NEXT</span>}
+                          {isNext && !isToday && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#dcfce7', color: '#065f46', marginLeft: 8 }}>NEXT</span>}
+                          {alreadyCheckedIn && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#dcfce7', color: '#065f46', marginLeft: 8 }}>✅ CHECKED IN</span>}
                         </div>
                         <div style={{ fontSize: 12, color: '#64748b' }}>
                           {a.time} · {a.duration || 30} min · {a.providerName}
                         </div>
                         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{a.reason}</div>
                       </div>
-                      <div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                         <span style={{
                           fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 10,
                           background: a.visitType === 'Telehealth' ? '#f5f3ff' : '#eff6ff',
@@ -764,12 +918,215 @@ export default function PatientPortal() {
                         }}>
                           {a.visitType === 'Telehealth' ? '📹 Telehealth' : '🏥 In-Person'}
                         </span>
+                        {canCheckIn && (
+                          <button onClick={() => { setCheckInApt(a); setCheckInStep(1); }}
+                            style={{ fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 8, background: '#0066cc', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                            ✅ Online Check-In
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
+
+            {/* Past appointments */}
+            {patAppts.filter(a => new Date(`${a.date}T${a.time}`) < new Date() || a.status === 'Completed').length > 0 && (
+              <div style={{ ...cardStyle, marginTop: 18 }}>
+                <div style={{ ...cardHeaderStyle(), color: '#64748b' }}>🗓️ Past Appointments</div>
+                <div>
+                  {patAppts.filter(a => new Date(`${a.date}T${a.time}`) < new Date() || a.status === 'Completed').slice(0,5).map(a => (
+                    <div key={a.id} style={{ padding: '12px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 12, opacity: 0.7 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 8, background: '#f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 9, fontWeight: 700, color: '#64748b' }}>
+                        <div>{new Date(a.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' })}</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1, color: '#475569' }}>{new Date(a.date + 'T00:00:00').getDate()}</div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{a.type} with {a.providerName}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{a.date} · {a.status}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Self-schedule modal ── */}
+            {showSelfSchedule && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+                onClick={e => { if (e.target === e.currentTarget) setShowSelfSchedule(false); }}>
+                <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 24px 64px rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+                  <div style={{ padding: '16px 22px', background: 'linear-gradient(135deg,#0066cc,#1d4ed8)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 16 }}>📅 Request an Appointment</div>
+                      <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>Submit your preferred times — our team will confirm</div>
+                    </div>
+                    <button onClick={() => setShowSelfSchedule(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 800, fontSize: 20, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                  </div>
+                  {scheduleSubmitted ? (
+                    <div style={{ padding: 44, textAlign: 'center' }}>
+                      <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+                      <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Request Submitted!</div>
+                      <p style={{ color: '#64748b', fontSize: 13 }}>Our scheduling team will review your request and confirm your appointment. You'll receive a message when it's confirmed.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14, maxHeight: '65vh', overflowY: 'auto' }}>
+                        <div>
+                          <label style={sectionLabel}>Visit Type</label>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            {['In-Person', 'Telehealth'].map(vt => (
+                              <button key={vt} type="button" onClick={() => setSelfSchedForm(f => ({ ...f, visitType: vt }))}
+                                style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: `2px solid ${selfSchedForm.visitType === vt ? '#0066cc' : '#e2e8f0'}`, background: selfSchedForm.visitType === vt ? '#eff6ff' : '#f8fafc', color: selfSchedForm.visitType === vt ? '#0066cc' : '#64748b' }}>
+                                {vt === 'In-Person' ? '🏥 In-Person' : '📹 Telehealth'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label style={sectionLabel}>Reason / Chief Complaint *</label>
+                          <input className="form-input" placeholder="e.g. Medication follow-up, anxiety, sleep issues..." value={selfSchedForm.reason} onChange={e => setSelfSchedForm(f => ({ ...f, reason: e.target.value }))} style={{ fontSize: 13 }} />
+                        </div>
+                        <div>
+                          <label style={sectionLabel}>Preferred Date — Option 1</label>
+                          <input type="date" className="form-input" value={selfSchedForm.preferredDate1} onChange={e => setSelfSchedForm(f => ({ ...f, preferredDate1: e.target.value }))} min={todayKey} />
+                        </div>
+                        <div>
+                          <label style={sectionLabel}>Preferred Date — Option 2 (optional)</label>
+                          <input type="date" className="form-input" value={selfSchedForm.preferredDate2} onChange={e => setSelfSchedForm(f => ({ ...f, preferredDate2: e.target.value }))} min={todayKey} />
+                        </div>
+                        <div>
+                          <label style={sectionLabel}>Preferred Date — Option 3 (optional)</label>
+                          <input type="date" className="form-input" value={selfSchedForm.preferredDate3} onChange={e => setSelfSchedForm(f => ({ ...f, preferredDate3: e.target.value }))} min={todayKey} />
+                        </div>
+                        <div>
+                          <label style={sectionLabel}>Additional Notes</label>
+                          <textarea className="form-textarea" rows={2} value={selfSchedForm.notes} onChange={e => setSelfSchedForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any other information for our scheduling team..." style={{ fontSize: 12 }} />
+                        </div>
+                      </div>
+                      <div style={{ padding: '14px 22px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                        <button onClick={() => setShowSelfSchedule(false)} style={{ padding: '8px 18px', borderRadius: 8, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+                        <button onClick={submitSelfSchedule} disabled={!selfSchedForm.reason || !selfSchedForm.preferredDate1}
+                          style={{ padding: '8px 20px', borderRadius: 8, background: selfSchedForm.reason && selfSchedForm.preferredDate1 ? '#0066cc' : '#cbd5e1', color: '#fff', border: 'none', fontWeight: 700, fontSize: 12, cursor: selfSchedForm.reason && selfSchedForm.preferredDate1 ? 'pointer' : 'not-allowed' }}>
+                          📤 Submit Request
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── Online check-in modal ── */}
+            {checkInApt && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+                onClick={e => { if (e.target === e.currentTarget) { setCheckInApt(null); setCheckInStep(1); } }}>
+                <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 540, boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+                  {/* Header */}
+                  <div style={{ padding: '16px 22px', background: 'linear-gradient(135deg,#059669,#065f46)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 16 }}>✅ Online Check-In</div>
+                      <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>{checkInApt.type} · {checkInApt.time} · {checkInApt.providerName}</div>
+                    </div>
+                    <button onClick={() => { setCheckInApt(null); setCheckInStep(1); }} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 800, fontSize: 20, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                  </div>
+                  {/* Step indicator */}
+                  <div style={{ display: 'flex', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    {['Demographics', 'Symptoms', 'Emergency', 'Consent'].map((s, i) => (
+                      <div key={s} style={{ flex: 1, padding: '8px 4px', textAlign: 'center', fontSize: 10, fontWeight: 700, borderBottom: checkInStep === i + 1 ? '2px solid #059669' : '2px solid transparent', color: checkInStep > i ? '#059669' : checkInStep === i + 1 ? '#065f46' : '#94a3b8' }}>
+                        {checkInStep > i ? '✓ ' : `${i + 1}. `}{s}
+                      </div>
+                    ))}
+                  </div>
+                  {/* Steps */}
+                  <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14, minHeight: 220 }}>
+                    {checkInStep === 1 && (
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#1e293b' }}>Please confirm your information</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 13, background: '#f8fafc', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                          <div><span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700 }}>NAME</span><br /><strong>{patient?.firstName} {patient?.lastName}</strong></div>
+                          <div><span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700 }}>MRN</span><br /><strong>{patient?.mrn}</strong></div>
+                          <div><span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700 }}>DATE OF BIRTH</span><br /><strong>{patient?.dob}</strong></div>
+                          <div><span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700 }}>INSURANCE</span><br /><strong>{patient?.insurance?.primary?.name || insuranceForm.primaryName || '—'}</strong></div>
+                          <div><span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700 }}>ADDRESS</span><br /><strong style={{ fontSize: 12 }}>{patient?.address || '—'}</strong></div>
+                          <div><span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700 }}>PHONE</span><br /><strong>{patient?.phone || '—'}</strong></div>
+                        </div>
+                        <div style={{ marginTop: 12, padding: '10px 14px', background: '#eff6ff', borderRadius: 8, fontSize: 12, color: '#1e40af', border: '1px solid #bfdbfe' }}>
+                          ℹ️ If anything looks incorrect, please notify the front desk upon arrival. You can also update your information in the <strong>Insurance</strong> tab.
+                        </div>
+                      </div>
+                    )}
+                    {checkInStep === 2 && (
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#1e293b' }}>Today's Visit Information</div>
+                        <div style={{ marginBottom: 12 }}>
+                          <label style={sectionLabel}>Reason for Today's Visit</label>
+                          <input className="form-input" value={checkInData.reason} onChange={e => setCheckInData(d => ({ ...d, reason: e.target.value }))} placeholder={checkInApt.reason || 'Describe the reason for your visit...'} style={{ fontSize: 13 }} />
+                        </div>
+                        <div>
+                          <label style={sectionLabel}>Current Symptoms (optional)</label>
+                          <textarea className="form-textarea" rows={3} value={checkInData.symptoms} onChange={e => setCheckInData(d => ({ ...d, symptoms: e.target.value }))} placeholder="e.g. Increased anxiety, trouble sleeping, mood changes..." style={{ fontSize: 12 }} />
+                        </div>
+                      </div>
+                    )}
+                    {checkInStep === 3 && (
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#1e293b' }}>Emergency Contact</div>
+                        <div style={{ marginBottom: 12 }}>
+                          <label style={sectionLabel}>Emergency Contact Name</label>
+                          <input className="form-input" value={checkInData.emergencyName} onChange={e => setCheckInData(d => ({ ...d, emergencyName: e.target.value }))} placeholder={patient?.emergencyContact || 'Full name...'} style={{ fontSize: 13 }} />
+                        </div>
+                        <div>
+                          <label style={sectionLabel}>Emergency Contact Phone</label>
+                          <input className="form-input" value={checkInData.emergencyPhone} onChange={e => setCheckInData(d => ({ ...d, emergencyPhone: e.target.value }))} placeholder="(555) 000-0000" style={{ fontSize: 13 }} />
+                        </div>
+                        <div style={{ marginTop: 12, padding: '10px 14px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#475569' }}>
+                          <strong>Copay Reminder:</strong> Your estimated copay is <strong>${patient?.insurance?.primary?.copay ?? insuranceForm.primaryCopay ?? '—'}</strong>. Payment will be collected at check-out.
+                        </div>
+                      </div>
+                    )}
+                    {checkInStep === 4 && (
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#1e293b' }}>Consent & Agreement</div>
+                        <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#475569', maxHeight: 140, overflowY: 'auto', lineHeight: 1.7, marginBottom: 14, border: '1px solid #e2e8f0' }}>
+                          <strong>Consent to Treatment:</strong> I consent to the provision of outpatient mental health services by MindCare and its licensed providers. I understand that treatment may include evaluation, therapy, medication management, and other evidence-based interventions.<br /><br />
+                          <strong>Notice of Privacy Practices:</strong> I acknowledge receiving notice of MindCare's HIPAA privacy practices. My health information may be used for treatment, payment, and healthcare operations as described in the Notice.<br /><br />
+                          <strong>Financial Responsibility:</strong> I agree to pay any applicable copays, coinsurance, or deductibles per my insurance plan at the time of service.
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                          <input type="checkbox" checked={checkInData.consentSigned} onChange={e => setCheckInData(d => ({ ...d, consentSigned: e.target.checked }))} style={{ width: 17, height: 17, marginTop: 1, flexShrink: 0 }} />
+                          I have read and agree to the Consent to Treatment and acknowledge the Notice of Privacy Practices.
+                        </label>
+                        {checkInData.consentSigned && (
+                          <div style={{ marginTop: 10, padding: '8px 14px', background: '#dcfce7', borderRadius: 8, fontSize: 12, color: '#065f46', fontWeight: 600 }}>
+                            ✍️ Electronically signed by {currentUser?.firstName} {currentUser?.lastName} on {new Date().toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {/* Footer */}
+                  <div style={{ padding: '12px 22px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between' }}>
+                    <button onClick={() => checkInStep > 1 ? setCheckInStep(s => s - 1) : (setCheckInApt(null), setCheckInStep(1))}
+                      style={{ padding: '8px 18px', borderRadius: 8, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+                      {checkInStep === 1 ? 'Cancel' : '← Back'}
+                    </button>
+                    {checkInStep < 4 ? (
+                      <button onClick={() => setCheckInStep(s => s + 1)}
+                        style={{ padding: '8px 22px', borderRadius: 8, background: '#059669', color: '#fff', border: 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                        Continue →
+                      </button>
+                    ) : (
+                      <button onClick={() => submitCheckIn(checkInApt)} disabled={!checkInData.consentSigned}
+                        style={{ padding: '8px 22px', borderRadius: 8, background: checkInData.consentSigned ? '#059669' : '#a7f3d0', color: '#fff', border: 'none', fontWeight: 700, fontSize: 12, cursor: checkInData.consentSigned ? 'pointer' : 'not-allowed' }}>
+                        ✅ Complete Check-In
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1074,6 +1431,67 @@ export default function PatientPortal() {
                     border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer',
                   }}>Submit Insurance Update</button>
                   <span style={{ fontSize: 11, color: '#94a3b8' }}>Changes will be reviewed by our billing department.</span>
+                </div>
+
+                {/* ── Eligibility Check ── */}
+                <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: '#1e293b' }}>🔍 Insurance Eligibility Verification</div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Verify your current insurance coverage and benefits in real time</div>
+                    </div>
+                    <button onClick={runEligibilityCheck} disabled={eligibilityLoading}
+                      style={{ padding: '10px 22px', borderRadius: 8, background: eligibilityLoading ? '#94a3b8' : '#059669', color: '#fff', border: 'none', fontWeight: 700, fontSize: 13, cursor: eligibilityLoading ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
+                      {eligibilityLoading ? '⏳ Checking...' : '✅ Check Eligibility'}
+                    </button>
+                  </div>
+                  {eligibilityLoading && (
+                    <div style={{ padding: '20px', textAlign: 'center', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13, color: '#64748b' }}>
+                      <div style={{ fontSize: 28, marginBottom: 8 }}>🔄</div>
+                      Contacting insurance payer... please wait
+                    </div>
+                  )}
+                  {eligibilityResult && eligibilityResult.status === 'eligible' && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '18px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                        <span style={{ fontSize: 24 }}>✅</span>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: 15, color: '#065f46' }}>Coverage Active — Eligible</div>
+                          <div style={{ fontSize: 11, color: '#059669' }}>Checked at {eligibilityResult.checkedAt}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 12 }}>
+                        {[
+                          ['Plan', eligibilityResult.plan],
+                          ['Member ID', eligibilityResult.memberId],
+                          ['Group #', eligibilityResult.groupNumber],
+                          ['Mental Health', eligibilityResult.mentalHealth],
+                          ['Copay', `$${eligibilityResult.copay || '—'} per visit`],
+                          ['Effective Date', eligibilityResult.effectiveDate],
+                          ['Deductible', `${eligibilityResult.deductible} (${eligibilityResult.deductibleMet} met)`],
+                          ['Out-of-Pocket Max', `${eligibilityResult.outOfPocketMax} (${eligibilityResult.outOfPocketMet} met)`],
+                        ].map(([label, val]) => (
+                          <div key={label} style={{ padding: '8px 12px', background: '#fff', borderRadius: 8, border: '1px solid #d1fae5' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>{label}</div>
+                            <div style={{ fontWeight: 600, color: '#1e293b' }}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {eligibilityResult && eligibilityResult.status === 'needs_info' && (
+                    <div style={{ background: '#fef3c7', border: '1px solid #fde068', borderRadius: 10, padding: '16px 18px' }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <span style={{ fontSize: 22 }}>⚠️</span>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: '#92400e' }}>Insurance Information Incomplete</div>
+                          <div style={{ fontSize: 12, color: '#78350f', marginTop: 4, lineHeight: 1.6 }}>
+                            Please enter your insurance company name and member ID above, then click <strong>Submit Insurance Update</strong> before running the eligibility check.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

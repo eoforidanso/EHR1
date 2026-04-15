@@ -1,8 +1,379 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePatient } from '../contexts/PatientContext';
-import { medicationDatabase, pharmacies } from '../data/mockData';
+import { medicationDatabase, pharmacies, users } from '../data/mockData';
 
+// ── MD-only helper: only licensed MDs may authorize / receive refills ──
+const isMD = (user) => /\bMD\b/i.test(user?.credentials || '');
+
+// ── Staff Refill Request (non-prescriber) ────────────────────────
+function StaffRefillRequest() {
+  const { currentUser } = useAuth();
+  const { patients, selectedPatient, selectPatient, meds, inboxMessages, addInboxMessage, updateMessageStatus } = usePatient();
+
+  // Only MDs can authorize refills — NPs, PAs, and therapists are excluded
+  const providers = users.filter(u => u.role === 'prescriber' && isMD(u));
+
+  const [activeTab, setActiveTab] = useState('assign'); // 'assign' | 'new'
+
+  // ── New Request form state ──────────────────────────────────
+  const [patientSearch, setPatientSearch] = useState('');
+  const [reqPatient, setReqPatient] = useState(selectedPatient);
+  const [selectedMedName, setSelectedMedName] = useState('');
+  const [customMed, setCustomMed] = useState('');
+  const [providerId, setProviderId] = useState(providers[0]?.id || '');
+  const [notes, setNotes] = useState('');
+  const [urgent, setUrgent] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  // ── Assign view state ───────────────────────────────────────
+  // Track per-message selected provider + assigned state
+  const [assignSelections, setAssignSelections] = useState({});   // msgId -> providerId
+  const [assignedIds, setAssignedIds] = useState({});             // msgId -> true
+
+  useEffect(() => {
+    if (selectedPatient) {
+      setReqPatient(selectedPatient);
+      setPatientSearch('');
+    }
+  }, [selectedPatient?.id]);
+
+  // Pending refill requests not yet assigned by staff
+  const pendingRefills = inboxMessages.filter(
+    m => m.type === 'Rx Refill Request' && m.status !== 'Forwarded' && !assignedIds[m.id]
+  );
+
+  const filteredPts = patientSearch.length > 1
+    ? patients.filter(p =>
+        `${p.firstName} ${p.lastName}`.toLowerCase().includes(patientSearch.toLowerCase()) ||
+        p.mrn.toLowerCase().includes(patientSearch.toLowerCase())
+      )
+    : patients;
+
+  const patientMeds = reqPatient ? (meds[reqPatient.id] || []).filter(m => m.status === 'Active') : [];
+
+  // ── Assign a pending refill to a provider ──────────────────
+  const handleAssign = (msg) => {
+    const targetProviderId = assignSelections[msg.id] || providers[0]?.id;
+    if (!targetProviderId) return;
+
+    const provider = providers.find(p => p.id === targetProviderId);
+    const providerLabel = provider
+      ? `${provider.credentials ? provider.credentials + ' ' : ''}${provider.firstName} ${provider.lastName}`
+      : 'Provider';
+
+    addInboxMessage({
+      type: 'Rx Refill Request',
+      from: `${currentUser.firstName} ${currentUser.lastName} (Staff — Forwarded)`,
+      to: targetProviderId,
+      patient: msg.patient,
+      patientName: msg.patientName,
+      subject: msg.subject,
+      body: `[Assigned by ${currentUser.firstName} ${currentUser.lastName}]\n\n${msg.body}`,
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      priority: msg.priority || 'Normal',
+      urgent: msg.urgent || false,
+      status: 'Unread',
+    });
+
+    updateMessageStatus(msg.id, 'Forwarded');
+    setAssignedIds(prev => ({ ...prev, [msg.id]: true }));
+  };
+
+  // ── Submit new manual request ───────────────────────────────
+  const handleSubmit = () => {
+    const medLabel = selectedMedName === '__custom__' ? customMed : selectedMedName;
+    if (!reqPatient || !medLabel.trim() || !providerId) return;
+
+    const provider = providers.find(p => p.id === providerId);
+    const providerLabel = provider
+      ? `${provider.credentials ? provider.credentials + ' ' : ''}${provider.firstName} ${provider.lastName}`
+      : 'Provider';
+
+    addInboxMessage({
+      type: 'Rx Refill Request',
+      from: `${currentUser.firstName} ${currentUser.lastName} (Staff)`,
+      to: providerId,
+      patient: reqPatient.id,
+      patientName: `${reqPatient.firstName} ${reqPatient.lastName}`,
+      subject: `Refill Request: ${medLabel} — ${reqPatient.firstName} ${reqPatient.lastName}`,
+      body: `Refill request submitted by ${currentUser.firstName} ${currentUser.lastName} (${currentUser.role}).\n\nPatient: ${reqPatient.firstName} ${reqPatient.lastName} (${reqPatient.mrn})\nMedication: ${medLabel}\nAssigned to: ${providerLabel}${notes ? `\n\nNotes: ${notes}` : ''}`,
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      priority: urgent ? 'High' : 'Normal',
+      urgent,
+      status: 'Unread',
+    });
+
+    setSubmitted(true);
+    setTimeout(() => {
+      setSubmitted(false);
+      setSelectedMedName('');
+      setCustomMed('');
+      setNotes('');
+      setUrgent(false);
+    }, 3000);
+  };
+
+  const medLabel = selectedMedName === '__custom__' ? customMed : selectedMedName;
+  const canSubmit = reqPatient && medLabel.trim() && providerId;
+
+  return (
+    <div className="fade-in">
+      <div className="page-header">
+        <h1>💊 Refill Management</h1>
+        <p>Assign incoming refill requests to providers or submit a new refill request</p>
+      </div>
+
+      <div className="alert" style={{ background: '#fef9c3', border: '1px solid #fde047', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13 }}>
+        <strong>⚠️ Staff Notice:</strong> Only licensed prescribers can approve and send prescriptions to pharmacies. Use this panel to route refill requests to the appropriate provider's inbox.
+      </div>
+
+      {/* MD-only notice */}
+      <div style={{ background: '#fef9c3', border: '1px solid #fde047', borderRadius: 8, padding: '10px 16px', marginBottom: 16, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 16 }}>⚕️</span>
+        <span><strong>MD Authorization Only:</strong> Refill requests may only be routed to and authorized by a licensed <strong>Medical Doctor (MD)</strong>. Nurse Practitioners (NP) and Physician Assistants (PA) are not authorized to approve refills in this system.</span>
+      </div>
+
+      {/* ── Toggle tabs ── */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', width: 'fit-content' }}>
+        {[
+          { key: 'assign', label: `🔀 Assign Pending Refills${pendingRefills.length > 0 ? ` (${pendingRefills.length})` : ''}` },
+          { key: 'new',    label: '➕ New Refill Request' },
+        ].map(t => (
+          <button key={t.key} onClick={() => setActiveTab(t.key)}
+            style={{
+              padding: '10px 22px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+              background: activeTab === t.key ? 'var(--primary)' : 'var(--bg)',
+              color: activeTab === t.key ? 'white' : 'var(--text-muted)',
+              borderRight: t.key === 'assign' ? '1px solid var(--border)' : 'none',
+            }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ══════════ ASSIGN TAB ══════════ */}
+      {activeTab === 'assign' && (
+        <div>
+          {pendingRefills.length === 0 ? (
+            <div className="card" style={{ textAlign: 'center', padding: 60 }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No Pending Refills</h3>
+              <p className="text-secondary">All refill requests have been assigned to a provider.</p>
+              <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setActiveTab('new')}>
+                ➕ Submit a New Refill Request
+              </button>
+            </div>
+          ) : (
+            <div className="card">
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2>🔀 Pending Refill Requests — Awaiting Assignment</h2>
+                <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 12px', background: 'var(--warning-bg, #fef3c7)', color: '#92400e', borderRadius: 20 }}>
+                  {pendingRefills.length} unassigned
+                </span>
+              </div>
+              <div>
+                {pendingRefills.map(msg => {
+                  const selectedProv = assignSelections[msg.id] || providers[0]?.id || '';
+                  const alreadyAssigned = assignedIds[msg.id];
+                  return (
+                    <div key={msg.id} style={{
+                      padding: '16px 20px',
+                      borderBottom: '1px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 16,
+                      background: msg.urgent ? '#fffbeb' : 'transparent',
+                    }}>
+                      {/* Icon + priority */}
+                      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: msg.urgent ? '#fef3c7' : 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                          💊
+                        </div>
+                        {msg.urgent && <span style={{ fontSize: 9, fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '1px 6px', borderRadius: 8 }}>URGENT</span>}
+                      </div>
+
+                      {/* Message info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{msg.subject}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                          <span>👤 <strong>{msg.patientName}</strong></span>
+                          <span>📤 From: {msg.from}</span>
+                          <span>📅 {msg.date}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg)', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', lineHeight: 1.6, maxHeight: 60, overflow: 'hidden' }}>
+                          {msg.body}
+                        </div>
+                      </div>
+
+                      {/* Assign controls */}
+                      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220 }}>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assign to Provider</label>
+                        <select
+                          className="form-select"
+                          value={selectedProv}
+                          onChange={e => setAssignSelections(prev => ({ ...prev, [msg.id]: e.target.value }))}
+                          style={{ fontSize: 12 }}
+                        >
+                          {providers.length === 0 && (
+                          <option value="">No MD prescribers available</option>
+                        )}
+                        {providers.map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.firstName} {p.lastName}{p.credentials ? ` — ${p.credentials}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <div style={{ fontSize: 9, color: '#92400e', fontWeight: 600, marginTop: 2 }}>MD only</div>
+                        {alreadyAssigned ? (
+                          <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#065f46', background: '#dcfce7', borderRadius: 6, padding: '7px 0' }}>
+                            ✅ Assigned
+                          </div>
+                        ) : (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleAssign(msg)}
+                            style={{ fontWeight: 700 }}
+                          >
+                            📨 Assign to Inbox
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══════════ NEW REQUEST TAB ══════════ */}
+      {activeTab === 'new' && (
+        submitted ? (
+          <div className="card" style={{ textAlign: 'center', padding: 60 }}>
+            <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+            <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Refill Request Sent</h2>
+            <p className="text-secondary">The refill request has been delivered to the provider's inbox for review and approval.</p>
+          </div>
+        ) : (
+          <>
+            {/* Patient */}
+            <div className="card mb-4">
+              <div className="card-header"><h2>👤 Patient</h2></div>
+              <div className="card-body">
+                {reqPatient ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#6366f1', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
+                      {reqPatient.firstName[0]}{reqPatient.lastName[0]}
+                    </div>
+                    <div>
+                      <div className="font-bold">{reqPatient.lastName}, {reqPatient.firstName}</div>
+                      <div className="text-sm text-muted">{reqPatient.mrn} · DOB: {reqPatient.dob}</div>
+                    </div>
+                    <button className="btn btn-sm btn-secondary" style={{ marginLeft: 'auto' }} onClick={() => setReqPatient(null)}>Change</button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      className="form-input"
+                      placeholder="Search patient by name or MRN..."
+                      value={patientSearch}
+                      onChange={(e) => setPatientSearch(e.target.value)}
+                    />
+                    {patientSearch.length > 1 && (
+                      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginTop: 4, maxHeight: 200, overflowY: 'auto' }}>
+                        {filteredPts.map((p) => (
+                          <div key={p.id}
+                            style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13 }}
+                            onClick={() => { setReqPatient(p); selectPatient(p.id); setPatientSearch(''); }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--primary-light)'}
+                            onMouseLeave={e => e.currentTarget.style.background = ''}
+                          >
+                            <strong>{p.lastName}, {p.firstName}</strong> — {p.mrn}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Refill Details */}
+            <div className="card mb-4">
+              <div className="card-header"><h2>💊 Medication & Provider</h2></div>
+              <div className="card-body">
+                <div className="form-group">
+                  <label className="form-label">Medication *</label>
+                  {patientMeds.length > 0 ? (
+                    <select className="form-select" value={selectedMedName} onChange={(e) => { setSelectedMedName(e.target.value); setCustomMed(''); }}>
+                      <option value="">— Select medication —</option>
+                      {patientMeds.map((m, i) => (
+                        <option key={i} value={`${m.name} ${m.dose}`}>{m.name} {m.dose} — {m.frequency}</option>
+                      ))}
+                      <option value="__custom__">Other (enter manually)</option>
+                    </select>
+                  ) : (
+                    <input className="form-input" placeholder="Enter medication name and dose..." value={customMed}
+                      onChange={(e) => { setCustomMed(e.target.value); setSelectedMedName('__custom__'); }} />
+                  )}
+                </div>
+
+                {selectedMedName === '__custom__' && patientMeds.length > 0 && (
+                  <div className="form-group">
+                    <label className="form-label">Medication name / dose *</label>
+                    <input className="form-input" placeholder="e.g. Sertraline 50mg" value={customMed} onChange={(e) => setCustomMed(e.target.value)} />
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Assign to Provider *
+                    <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: '#92400e', background: '#fef3c7', padding: '1px 7px', borderRadius: 10 }}>MD Only</span>
+                  </label>
+                  <select className="form-select" value={providerId} onChange={(e) => setProviderId(e.target.value)}>
+                    {providers.length === 0 && <option value="">No MD prescribers available</option>}
+                    {providers.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.firstName} {p.lastName}{p.credentials ? ` — ${p.credentials}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ fontSize: 11, color: '#92400e', marginTop: 4 }}>⚕️ Only licensed MDs can authorize refills. NPs and PAs are not eligible.</div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Notes / Reason</label>
+                  <textarea className="form-textarea" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)}
+                    placeholder="e.g. Patient reports running low on medication, last filled 03/15..." />
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
+                    <span className="text-sm font-medium">Mark as Urgent</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-primary btn-lg" onClick={handleSubmit} disabled={!canSubmit}
+                title={!canSubmit ? 'Select a patient and medication first' : ''}>
+                📨 Send to Provider Inbox
+              </button>
+            </div>
+          </>
+        )
+      )}
+    </div>
+  );
+}
+
+// ── Main EPrescribe (prescribers only) ──────────────────────────
 export default function EPrescribe() {
   const { currentUser, verifyEPCS, generateEPCSOTP, verifyEPCSOTP } = useAuth();
   const { patients, selectedPatient, selectPatient, addMedication, addOrder } = usePatient();
@@ -43,6 +414,11 @@ export default function EPrescribe() {
   const [otpCountdown, setOtpCountdown] = useState(30);
   const [showSuccess, setShowSuccess] = useState(false);
   const otpTimerRef = useRef(null);
+
+  // Only MDs get full e-prescribe. NPs, PAs, or any non-MD prescriber → staff form.
+  if (currentUser?.role !== 'prescriber' || !isMD(currentUser)) {
+    return <StaffRefillRequest />;
+  }
 
   const filteredMeds = medSearch.length > 1
     ? medicationDatabase.filter(m =>

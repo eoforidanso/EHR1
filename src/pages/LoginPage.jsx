@@ -52,7 +52,7 @@ export default function LoginPage() {
 
   const handleDemoLogin = (u) => {
     setUsername(u.username);
-    setPassword('');
+    setPassword(u.password);
   };
 
   const handleForgotSubmit = (e) => {
@@ -107,7 +107,13 @@ export default function LoginPage() {
                   type="text"
                   className="form-input"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setUsername(val);
+                    const matched = users.find(u => u.username === val);
+                    if (matched) setPassword(matched.password);
+                    else setPassword('');
+                  }}
                   placeholder="Enter your username"
                   autoComplete="username"
                   required
@@ -148,7 +154,7 @@ export default function LoginPage() {
             </form>
 
             <p className="login-demo-hint">
-              Demo password for all accounts: <code>password</code>
+              Demo password for all accounts: <code>Pass123!</code>
             </p>
 
             <div className="login-hipaa-footer">

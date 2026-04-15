@@ -16,7 +16,9 @@ export default function Orders({ patientId }) {
   const [forwardTo, setForwardTo] = useState('');
   const [expandedOrder, setExpandedOrder] = useState(null);
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin      = currentUser?.role === 'admin';
+  const isTherapist  = currentUser?.role === 'therapist';
+  const mustForward  = isAdmin || isTherapist; // neither role can place orders on their own authority
   const providers = users.filter(u => u.role === 'prescriber');
 
   const patientOrders = orders[patientId] || [];
@@ -27,22 +29,22 @@ export default function Orders({ patientId }) {
 
   const handleAdd = () => {
     if (!form.description.trim()) return;
-    if (isAdmin && !forwardTo) return;
+    if (mustForward && !forwardTo) return;
 
-    const forwardProvider = isAdmin ? providers.find(p => p.id === forwardTo) : null;
+    const forwardProvider = mustForward ? providers.find(p => p.id === forwardTo) : null;
 
     addOrder(patientId, {
       ...form,
       labFacility: form.type === 'Lab' && selectedLabFacility ? `${selectedLabFacility.name} — ${selectedLabFacility.city}` : '',
-      status: isAdmin ? 'Pending Provider Review' : 'Pending',
+      status: mustForward ? 'Pending Provider Review' : 'Pending',
       orderedDate: new Date().toISOString().split('T')[0],
-      orderedBy: isAdmin
+      orderedBy: mustForward
         ? `${currentUser.firstName} ${currentUser.lastName} → ${forwardProvider.firstName} ${forwardProvider.lastName}`
         : `${currentUser.firstName} ${currentUser.lastName}`,
       forwardedTo: forwardProvider ? `${forwardProvider.firstName} ${forwardProvider.lastName}` : null,
     });
 
-    if (isAdmin && forwardProvider) {
+    if (mustForward && forwardProvider) {
       addInboxMessage({
         type: 'Order Forward',
         from: `${currentUser.firstName} ${currentUser.lastName} (Admin)`,
@@ -82,7 +84,9 @@ export default function Orders({ patientId }) {
               <div className="form-group">
                 <label className="form-label">Order Type</label>
                 <select className="form-select" value={form.type} onChange={(e) => { setForm({ ...form, type: e.target.value }); setOrderType(e.target.value); }}>
-                  <option>Lab</option><option>Imaging</option><option>Referral</option><option>Prescription</option><option>Procedure</option>
+                  <option>Lab</option><option>Imaging</option><option>Referral</option>
+                  {!isTherapist && <option>Prescription</option>}
+                  <option>Procedure</option>
                 </select>
               </div>
               <div className="form-group">
@@ -171,7 +175,7 @@ export default function Orders({ patientId }) {
               <label className="form-label">Clinical Notes</label>
               <textarea className="form-textarea" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Additional notes..." />
             </div>
-            {isAdmin && (
+            {mustForward && (
               <div className="form-group">
                 <label className="form-label">Forward to Provider *</label>
                 <select className="form-select" value={forwardTo} onChange={(e) => setForwardTo(e.target.value)}>
@@ -180,12 +184,18 @@ export default function Orders({ patientId }) {
                     <option key={p.id} value={p.id}>{p.firstName} {p.lastName}{p.credentials ? `, ${p.credentials}` : ''} — {p.specialty}</option>
                   ))}
                 </select>
-                {!forwardTo && <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>Admin staff cannot place orders directly. Select a provider to forward this order for review and signature.</span>}
+                {!forwardTo && (
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                    {isTherapist
+                      ? 'Therapists cannot place orders directly. Select a provider to forward this order for review and signature.'
+                      : 'Admin staff cannot place orders directly. Select a provider to forward this order for review and signature.'}
+                  </span>
+                )}
               </div>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-sm btn-primary" onClick={handleAdd} disabled={isAdmin && !forwardTo}>
-                {isAdmin ? '📨 Forward to Provider' : 'Place Order'}
+              <button className="btn btn-sm btn-primary" onClick={handleAdd} disabled={mustForward && !forwardTo}>
+                {mustForward ? '📨 Forward to Provider' : 'Place Order'}
               </button>
               <button className="btn btn-sm btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
             </div>
